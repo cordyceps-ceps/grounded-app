@@ -85,13 +85,14 @@ export default function Home() {
 
             {/* CTA */}
             <div className="px-5 pb-5">
-              <button
-                className="w-full py-3 px-4 rounded-xl bg-primary text-white font-body font-medium text-sm
+              <a
+                href="/chat"
+                className="block w-full py-3 px-4 rounded-xl bg-primary text-white font-body font-medium text-sm text-center
                            hover:bg-primary-hover active:scale-[0.98] transition-all duration-150
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
                 Ask a question
-              </button>
+              </a>
             </div>
           </div>
         </section>
