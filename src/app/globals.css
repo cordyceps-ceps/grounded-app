@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* ─── Semantic design tokens ───────────────────────────────────────────────── */
+
+:root {
+  /* Light mode (warm, bookish, calm) */
+  --background: #FAF7F2;
+  --foreground: #2C2A26;
+  --primary: #2D5016;
+  --primary-hover: #3A6820;
+  --secondary: #8B7D6B;
+  --accent: #D4A04A;
+  --card: #F2EDE4;
+  --card-border: #DDD5C4;
+  --muted: #9E9080;
+  --muted-bg: #EEE8DE;
+  --subtle: #C4B8A4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode — stays warm, never cold */
+    --background: #1A1A18;
+    --foreground: #E8E4DC;
+    --primary: #5C9A30;
+    --primary-hover: #6BAA38;
+    --secondary: #9E8E7E;
+    --accent: #C49040;
+    --card: #242422;
+    --card-border: #383632;
+    --muted: #7A6E62;
+    --muted-bg: #2A2A28;
+    --subtle: #4A4540;
+  }
+}
+
+/* ─── Map CSS vars → Tailwind utilities via @theme inline ───────────────────── */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-muted: var(--muted);
+  --color-muted-bg: var(--muted-bg);
+  --color-subtle: var(--subtle);
+
+  /* Font families — populated by next/font vars */
+  --font-heading: var(--font-lora);
+  --font-body: var(--font-inter);
+}
+
+/* ─── Base styles ────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-lora), ui-serif, Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
