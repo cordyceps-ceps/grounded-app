@@ -1,78 +1,138 @@
 @import "tailwindcss";
 
-/* ─── Semantic design tokens ───────────────────────────────────────────────── */
+/* ─── Kitchen Table design tokens (OKLCH, locked) ──────────────────────────── */
 
 :root {
-  /* Light mode (warm, bookish, calm) */
-  --background: #FAF7F2;
-  --foreground: #2C2A26;
-  --primary: #2D5016;
-  --primary-hover: #3A6820;
-  --secondary: #8B7D6B;
-  --accent: #D4A04A;
-  --card: #F2EDE4;
-  --card-border: #DDD5C4;
-  --muted: #9E9080;
-  --muted-bg: #EEE8DE;
-  --subtle: #C4B8A4;
+  --g-bg: oklch(0.945 0.027 78);
+  --g-panel: oklch(0.979 0.017 80);
+  --g-panel2: oklch(0.915 0.03 74);
+  --g-ink: oklch(0.28 0.03 50);
+  --g-sub: oklch(0.46 0.03 52);
+  --g-faint: oklch(0.60 0.025 56);
+  --g-line: oklch(0.88 0.024 70);
+  --g-prim: oklch(0.55 0.115 46);
+  --g-prim-soft: oklch(0.93 0.05 58);
+  --g-on-prim: oklch(0.975 0.02 80);
+  --g-honey: oklch(0.66 0.105 66);
+  --g-honey-soft: oklch(0.93 0.05 74);
+  --g-shadow: 0 2px 4px rgba(90,55,30,0.06), 0 14px 32px rgba(90,55,30,0.09);
+  --g-shadow-sm: 0 1px 2px rgba(90,55,30,0.05), 0 5px 14px rgba(90,55,30,0.05);
+  --g-overlay: rgba(40,26,15,0.42);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark mode — stays warm, never cold */
-    --background: #1A1A18;
-    --foreground: #E8E4DC;
-    --primary: #5C9A30;
-    --primary-hover: #6BAA38;
-    --secondary: #9E8E7E;
-    --accent: #C49040;
-    --card: #242422;
-    --card-border: #383632;
-    --muted: #7A6E62;
-    --muted-bg: #2A2A28;
-    --subtle: #4A4540;
-  }
+.night {
+  --g-bg: oklch(0.205 0.018 48);
+  --g-panel: oklch(0.255 0.02 50);
+  --g-panel2: oklch(0.305 0.022 50);
+  --g-ink: oklch(0.925 0.025 78);
+  --g-sub: oklch(0.73 0.02 70);
+  --g-faint: oklch(0.57 0.018 62);
+  --g-line: oklch(0.345 0.02 54);
+  --g-prim: oklch(0.68 0.105 50);
+  --g-prim-soft: oklch(0.325 0.055 50);
+  --g-on-prim: oklch(0.17 0.015 48);
+  --g-honey: oklch(0.78 0.09 72);
+  --g-honey-soft: oklch(0.33 0.05 70);
+  --g-shadow: 0 2px 4px rgba(0,0,0,0.32), 0 16px 36px rgba(0,0,0,0.42);
+  --g-shadow-sm: 0 1px 3px rgba(0,0,0,0.34);
+  --g-overlay: rgba(0,0,0,0.58);
+  color-scheme: dark;
 }
 
-/* ─── Map CSS vars → Tailwind utilities via @theme inline ───────────────────── */
+/* ─── Map tokens → Tailwind utilities ──────────────────────────────────────── */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
-  --color-card: var(--card);
-  --color-card-border: var(--card-border);
-  --color-muted: var(--muted);
-  --color-muted-bg: var(--muted-bg);
-  --color-subtle: var(--subtle);
+  --color-g-bg: var(--g-bg);
+  --color-g-panel: var(--g-panel);
+  --color-g-panel2: var(--g-panel2);
+  --color-g-ink: var(--g-ink);
+  --color-g-sub: var(--g-sub);
+  --color-g-faint: var(--g-faint);
+  --color-g-line: var(--g-line);
+  --color-g-prim: var(--g-prim);
+  --color-g-prim-soft: var(--g-prim-soft);
+  --color-g-on-prim: var(--g-on-prim);
+  --color-g-honey: var(--g-honey);
+  --color-g-honey-soft: var(--g-honey-soft);
 
-  /* Font families — populated by next/font vars */
-  --font-heading: var(--font-lora);
-  --font-body: var(--font-inter);
+  --font-display: var(--font-instrument-serif);
+  --font-body: var(--font-figtree);
 }
 
-/* ─── Base styles ────────────────────────────────────────────────────────────── */
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
 
 @layer base {
-  html {
-    color-scheme: light dark;
-  }
-
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    background-color: var(--g-bg);
+    color: var(--g-ink);
+    font-family: var(--font-figtree), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-lora), ui-serif, Georgia, serif;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+
+@keyframes g-fade-up {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes g-pulse-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes g-caret-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes g-wave {
+  0%, 100% { height: 8px; }
+  50% { height: 40px; }
+}
+
+@keyframes g-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes g-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.g-up {
+  animation: g-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.g-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: g-pulse-dot 1.2s ease-in-out infinite;
+}
+
+.g-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: g-caret-blink 0.8s step-end infinite;
+}
+
+.g-wave-bar {
+  width: 4px;
+  border-radius: 4px;
+  animation: g-wave 0.6s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .g-up { animation: none; }
+  .g-dot { animation: none; opacity: 0.6; }
+  .g-caret { animation: none; opacity: 1; }
+  .g-wave-bar { animation: none; height: 16px; }
 }

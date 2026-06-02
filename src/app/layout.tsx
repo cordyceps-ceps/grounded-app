@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Lora } from "next/font/google";
+import { Instrument_Serif, Figtree } from "next/font/google";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
-const inter = Inter({
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-instrument-serif",
   display: "swap",
 });
 
-const lora = Lora({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-lora",
+  variable: "--font-figtree",
   display: "swap",
 });
 
@@ -37,9 +39,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#2D5016" },
-    { media: "(prefers-color-scheme: dark)", color: "#1A1A18" },
+    { media: "(prefers-color-scheme: light)", color: "#e8dfd0" },
+    { media: "(prefers-color-scheme: dark)", color: "#2a2420" },
   ],
 };
 
@@ -49,11 +52,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
+    <html
+      lang="en"
+      className={`${instrumentSerif.variable} ${figtree.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('grounded-theme');if(t==='night'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('night')}catch(e){}})()`,
+          }}
+        />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
