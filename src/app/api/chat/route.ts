@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { after } from "next/server";
 import { sendPushToUser } from "@/lib/pushNotify";
 
 const anthropic = new Anthropic({
@@ -255,6 +256,9 @@ export async function POST(request: Request) {
     content: `Here are relevant passages from the source books:\n\n${contextBlock}\n\n---\n\nParent's question: ${message}`,
   });
 
+  // Push notification data — set inside the stream, read by after()
+  let pushPreview: string | null = null;
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -292,24 +296,8 @@ export async function POST(request: Request) {
             // Don't fail the stream if DB save fails
           }
 
-          // Send push notification
-          if (userId) {
-            try {
-              const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
-              console.log("[push] Sending to user:", userId, "convo:", conversationId);
-              const results = await sendPushToUser(userId, {
-                title: "Your answer is ready",
-                body: preview,
-                url: `/chat/${conversationId}`,
-                conversationId,
-              });
-              console.log("[push] Results:", JSON.stringify(results?.map(r => r.status)));
-            } catch (err) {
-              console.error("[push] Error:", err);
-            }
-          } else {
-            console.log("[push] No userId provided, skipping push");
-          }
+          // Store preview for after() push notification
+          pushPreview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
         }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -325,6 +313,27 @@ export async function POST(request: Request) {
         controller.close();
       }
     },
+  });
+
+  // Send push notification after the response stream completes
+  // Using after() ensures the function stays alive for this side effect
+  after(async () => {
+    if (!userId || !conversationId || !pushPreview) {
+      console.log("[push] Skipping:", { userId: !!userId, conversationId: !!conversationId, pushPreview: !!pushPreview });
+      return;
+    }
+    try {
+      console.log("[push] after() sending to user:", userId, "convo:", conversationId);
+      const results = await sendPushToUser(userId, {
+        title: "Your answer is ready",
+        body: pushPreview,
+        url: `/chat/${conversationId}`,
+        conversationId,
+      });
+      console.log("[push] Results:", JSON.stringify(results?.map(r => r.status)));
+    } catch (err) {
+      console.error("[push] after() error:", err);
+    }
   });
 
   return new Response(stream, {
