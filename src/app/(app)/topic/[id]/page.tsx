@@ -260,7 +260,7 @@ export default function TopicPage() {
                       {pin.question}
                     </div>
                     <div className="font-body text-[13px] leading-[1.4] text-g-sub mt-[5px] line-clamp-1">
-                      {pin.content.replace(/^#+\s+/gm, "").replace(/\n+/g, " ").slice(0, 120)}
+                      {pin.content.replace(/^#+\s+/gm, "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\n+/g, " ").trim().slice(0, 120)}
                     </div>
                     <div className="font-body text-[11.5px] text-g-faint mt-[5px]">
                       {timeAgo(pin.created_at)}
