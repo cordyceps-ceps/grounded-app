@@ -1,24 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Sun, Moon, Plus, Pin, Pencil, Trash2, ChevronRight, Clock, Play } from "lucide-react";
 import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { getTopicById } from "@/lib/topics";
-
-// Mock data
-const MOCK_BABY = { name: "Theo", age: "3 weeks, 4 days", dob: "9 May 2026", weight: "3.4 kg", born: true };
-const MOCK_FACTS = [
-  { id: "f1", text: "Currently cluster feeding in the evenings", age: "updated 4 days ago", pinned: false, stale: false },
-  { id: "f2", text: "Tongue tie diagnosed week 1, snipped week 2", age: "pinned \u00b7 always relevant", pinned: true, stale: false },
-  { id: "f3", text: "Feeds roughly every 2 hours through the day", age: "updated 18 days ago", pinned: false, stale: true },
-];
-const MOCK_CONVOS = [
-  { id: "c1", title: "Is cluster feeding normal in the evenings?", who: "Tess", when: "2h ago" },
-  { id: "c2", title: "How do I know if he\u2019s getting enough milk?", who: "Nick", when: "Yesterday" },
-  { id: "c3", title: "Cracked nipple on the left \u2014 what helps?", who: "Tess", when: "3 days ago" },
-];
+import { createClient } from "@/lib/supabase/client";
+import { formatBabyAge } from "@/lib/utils";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -35,24 +24,91 @@ function DarkToggle() {
   );
 }
 
+function timeAgo(date: string): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+interface BabyData {
+  name: string;
+  born: boolean;
+  dob: string | null;
+  due_date: string | null;
+  birth_weight: string | null;
+}
+
+interface ConvoRow {
+  id: string;
+  title: string | null;
+  updated_at: string;
+}
+
 export default function TopicPage() {
   const router = useRouter();
   const params = useParams();
   const topic = getTopicById(params.id as string);
-  const [facts, setFacts] = useState(MOCK_FACTS);
   const [editFact, setEditFact] = useState<{ id: string; text: string } | null>(null);
   const [newFact, setNewFact] = useState(false);
   const [factText, setFactText] = useState("");
+  const [baby, setBaby] = useState<BabyData | null>(null);
+  const [convos, setConvos] = useState<ConvoRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("family_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        const { data: babies } = await supabase
+          .from("baby_profiles")
+          .select("name, born, dob, due_date, birth_weight")
+          .eq("family_id", profile.family_id)
+          .limit(1);
+
+        if (babies && babies.length > 0) {
+          setBaby(babies[0]);
+        }
+
+        if (topic?.ready) {
+          const { data: conversations } = await supabase
+            .from("conversations")
+            .select("id, title, updated_at")
+            .eq("family_id", profile.family_id)
+            .eq("topic_id", params.id)
+            .order("updated_at", { ascending: false })
+            .limit(20);
+
+          if (conversations) {
+            setConvos(conversations);
+          }
+        }
+      }
+      setLoaded(true);
+    };
+    load();
+  }, [params.id, topic?.ready]);
 
   if (!topic) return null;
 
-  const baby = MOCK_BABY;
-  const convos = topic.ready ? MOCK_CONVOS : [];
-  const staleFacts = facts.filter((f) => f.stale && !f.pinned);
-  const topicFacts = topic.ready ? facts : [];
-
-  const pinFact = (id: string) => setFacts((fs) => fs.map((f) => (f.id === id ? { ...f, pinned: true, stale: false } : f)));
-  const deleteFact = (id: string) => setFacts((fs) => fs.filter((f) => f.id !== id));
+  const babyAge = baby?.born && baby.dob ? formatBabyAge(baby.dob) : null;
+  const babyDobFormatted = baby?.dob
+    ? new Date(baby.dob).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : null;
 
   return (
     <div className="min-h-[100dvh] bg-g-bg flex flex-col relative">
@@ -65,89 +121,41 @@ export default function TopicPage() {
         {/* Title */}
         <div className="g-up font-display text-[40px] leading-[1.02] text-g-ink mb-5">{topic.name}</div>
 
-        {/* Stale facts banner */}
-        {staleFacts.length > 0 && (
-          <div className="g-up bg-g-honey-soft rounded-[18px] p-[17px] mb-[18px]">
-            <div className="font-display text-[21px] text-g-ink mb-[3px]">Worth a quick check?</div>
-            <div className="font-body text-[13.5px] text-g-sub mb-[13px] leading-[1.45]">
-              Some facts about {baby.name} might be out of date.
+        {/* Baby context card */}
+        {baby && (
+          <div className="g-up bg-g-panel rounded-[20px] p-[19px] mb-[26px] shadow-[var(--g-shadow)]">
+            <div className="flex justify-between items-baseline">
+              <div className="font-display text-[30px] text-g-ink leading-[1]">{baby.name}</div>
+              <div className="font-body text-[13px] text-g-faint">
+                {baby.born ? (babyAge ? `${babyAge} old` : "") : baby.due_date ? `due ${new Date(baby.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "expecting"}
+              </div>
             </div>
-            {staleFacts.map((f) => (
-              <div key={f.id} className="bg-g-panel rounded-[14px] p-[14px]">
-                <div className="font-body text-[14.5px] font-semibold text-g-ink mb-1">{f.text}</div>
-                <div className="font-body text-[12px] text-g-faint mb-[11px]">{f.age}</div>
-                <div className="flex gap-2">
-                  <button onClick={() => pinFact(f.id)} className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-on-prim bg-g-prim border-none rounded-[10px] py-2 px-3 cursor-pointer">
-                    <Pin size={13} />Pin
-                  </button>
-                  <button onClick={() => setEditFact({ id: f.id, text: f.text })} className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel2 border-none rounded-[10px] py-2 px-3 cursor-pointer">
-                    <Pencil size={13} />Edit
-                  </button>
-                  <button onClick={() => deleteFact(f.id)} className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel2 border-none rounded-[10px] py-2 px-3 cursor-pointer">
-                    <Trash2 size={13} />Delete
-                  </button>
+            <div className="font-body text-[12.5px] text-g-faint mt-1 mb-[15px]">
+              {baby.born
+                ? `born ${babyDobFormatted || ""}${baby.birth_weight ? ` \u00b7 ${baby.birth_weight} kg` : ""}`
+                : "not yet born"}
+            </div>
+
+            <Kicker color="var(--g-prim)" className="mb-[11px]">What Grounded keeps in mind</Kicker>
+
+            {!topic.ready ? (
+              <div className="bg-g-panel2 rounded-[13px] p-[14px]">
+                <div className="font-body text-[13.5px] leading-[1.5] text-g-sub">
+                  You&rsquo;ll add facts about {baby.name} here once this guide opens.
                 </div>
               </div>
-            ))}
+            ) : (
+              <div className="bg-g-panel2 rounded-[13px] p-[15px]">
+                <div className="font-body text-[13.5px] leading-[1.5] text-g-sub mb-3">
+                  Tell Grounded something that&rsquo;s true for {baby.name} right now — like how feeding&rsquo;s going — and answers get more relevant.
+                </div>
+                <Button size="sm" variant="soft" icon={Plus} onClick={() => setNewFact(true)}>
+                  Add a fact
+                </Button>
+              </div>
+            )}
           </div>
         )}
-
-        {/* Baby context card */}
-        <div className="g-up bg-g-panel rounded-[20px] p-[19px] mb-[26px] shadow-[var(--g-shadow)]">
-          <div className="flex justify-between items-baseline">
-            <div className="font-display text-[30px] text-g-ink leading-[1]">{baby.name}</div>
-            <div className="font-body text-[13px] text-g-faint">{baby.born ? baby.age : `due ${baby.dob}`}</div>
-          </div>
-          <div className="font-body text-[12.5px] text-g-faint mt-1 mb-[15px]">
-            {baby.born ? `born ${baby.dob} \u00b7 ${baby.weight}` : "not yet born"}
-          </div>
-
-          <Kicker color="var(--g-prim)" className="mb-[11px]">What Grounded keeps in mind</Kicker>
-
-          {!topic.ready ? (
-            <div className="bg-g-panel2 rounded-[13px] p-[14px]">
-              <div className="font-body text-[13.5px] leading-[1.5] text-g-sub">
-                You&rsquo;ll add facts about {baby.name} here once this guide opens.
-              </div>
-            </div>
-          ) : topicFacts.length === 0 ? (
-            <div className="bg-g-panel2 rounded-[13px] p-[15px]">
-              <div className="font-body text-[13.5px] leading-[1.5] text-g-sub mb-3">
-                Tell Grounded something that&rsquo;s true for {baby.name} right now — like how feeding&rsquo;s going — and answers get more relevant.
-              </div>
-              <Button size="sm" variant="soft" icon={Plus} onClick={() => setNewFact(true)}>
-                Add a fact
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-[9px]">
-                {topicFacts.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setEditFact({ id: f.id, text: f.text })}
-                    className="text-left bg-transparent border-none cursor-pointer flex gap-[10px] items-start p-0"
-                  >
-                    <span
-                      className="mt-[6px] w-[6px] h-[6px] rounded-full shrink-0"
-                      style={{ background: f.pinned ? "var(--g-honey)" : "var(--g-prim)" }}
-                    />
-                    <span className="font-body text-[14px] leading-[1.45] text-g-ink">
-                      {f.text}
-                      {f.pinned && <span className="text-g-faint text-[12px]"> · pinned</span>}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setNewFact(true)}
-                className="mt-[13px] flex items-center gap-[6px] bg-transparent border-none cursor-pointer font-body text-[13.5px] font-bold text-g-prim p-0"
-              >
-                <Plus size={15} />Add a fact
-              </button>
-            </>
-          )}
-        </div>
 
         {/* Sources */}
         <Kicker className="mb-[14px]">On the shelf</Kicker>
@@ -187,7 +195,15 @@ export default function TopicPage() {
         {topic.ready ? (
           <>
             <Kicker className="mb-3">Conversations here</Kicker>
-            {convos.length === 0 ? (
+            {!loaded ? (
+              <div className="flex justify-center py-4">
+                <span className="flex gap-[3px]">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
+                  ))}
+                </span>
+              </div>
+            ) : convos.length === 0 ? (
               <div className="bg-g-panel2 rounded-[16px] py-[18px] px-4 text-center">
                 <div className="font-body text-[14px] text-g-sub leading-[1.5]">
                   No questions yet. Tap <strong className="text-g-ink">Ask something new</strong> below to start.
@@ -202,8 +218,10 @@ export default function TopicPage() {
                     className="w-full text-left cursor-pointer bg-g-panel border-none rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center"
                   >
                     <span className="min-w-0">
-                      <span className="block font-body text-[14.5px] font-semibold text-g-ink leading-[1.3]">{c.title}</span>
-                      <span className="block font-body text-[12px] text-g-faint mt-[3px]">{c.who} · {c.when}</span>
+                      <span className="block font-body text-[14.5px] font-semibold text-g-ink leading-[1.3]">
+                        {c.title || "Untitled conversation"}
+                      </span>
+                      <span className="block font-body text-[12px] text-g-faint mt-[3px]">{timeAgo(c.updated_at)}</span>
                     </span>
                     <span className="text-g-faint shrink-0"><ChevronRight size={16} /></span>
                   </button>
@@ -240,14 +258,14 @@ export default function TopicPage() {
         </div>
       )}
 
-      {/* Edit/New fact sheet */}
+      {/* New fact sheet (placeholder for future) */}
       <Sheet
         open={!!editFact || newFact}
         onClose={() => { setEditFact(null); setNewFact(false); setFactText(""); }}
         title={editFact ? "Edit fact" : "Add a fact"}
       >
         <Field
-          label={`What\u2019s true for ${baby.name} right now?`}
+          label={`What\u2019s true for ${baby?.name || "your baby"} right now?`}
           value={editFact ? editFact.text : factText}
           onChange={(e) => editFact ? setEditFact({ ...editFact, text: e.target.value }) : setFactText(e.target.value)}
           placeholder="e.g. Currently cluster feeding in the evenings"

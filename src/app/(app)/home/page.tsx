@@ -1,22 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { TOPICS } from "@/lib/topics";
-import { getGreeting } from "@/lib/utils";
-
-// Mock data — will be replaced with Supabase queries
-const MOCK_BABY = { name: "Theo", age: "3 weeks, 4 days", dob: "2026-05-09", born: true };
-const MOCK_ME = "Nick";
-const MOCK_CONVOS = [
-  { id: "c1", title: "Is cluster feeding normal in the evenings?", who: "Tess", when: "2h ago", topicId: "bf" },
-  { id: "c2", title: "How do I know if he\u2019s getting enough milk?", who: "Nick", when: "Yesterday", topicId: "bf" },
-  { id: "c3", title: "Cracked nipple on the left \u2014 what helps?", who: "Tess", when: "3 days ago", topicId: "bf" },
-  { id: "c4", title: "Preparing to breastfeed before the birth", who: "Nick", when: "Last week", topicId: "bf" },
-];
+import { getGreeting, formatBabyAge } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -87,17 +78,102 @@ function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
   );
 }
 
+function timeAgo(date: string): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+interface ConvoRow {
+  id: string;
+  title: string | null;
+  topic_id: string;
+  updated_at: string;
+}
+
+interface BabyRow {
+  name: string;
+  born: boolean;
+  dob: string | null;
+  due_date: string | null;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const baby = MOCK_BABY;
-  const me = MOCK_ME;
-  const convos = MOCK_CONVOS;
+  const [me, setMe] = useState("");
+  const [baby, setBaby] = useState<BabyRow | null>(null);
+  const [convos, setConvos] = useState<ConvoRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const topics = TOPICS;
 
-  const sub = baby.born
-    ? `${baby.name} is ${baby.age} old. What\u2019s on your mind tonight?`
-    : `${baby.name} is on the way. What\u2019s on your mind?`;
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("display_name, family_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
+
+        const { data: babies } = await supabase
+          .from("baby_profiles")
+          .select("name, born, dob, due_date")
+          .eq("family_id", profile.family_id)
+          .limit(1);
+
+        if (babies && babies.length > 0) {
+          setBaby(babies[0]);
+        }
+
+        const { data: conversations } = await supabase
+          .from("conversations")
+          .select("id, title, topic_id, updated_at")
+          .eq("family_id", profile.family_id)
+          .order("updated_at", { ascending: false })
+          .limit(10);
+
+        if (conversations) {
+          setConvos(conversations);
+        }
+      }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  const babyAge = baby?.born && baby.dob ? formatBabyAge(baby.dob) : null;
+  const sub = baby
+    ? baby.born
+      ? `${baby.name} is ${babyAge} old. What\u2019s on your mind?`
+      : `${baby.name} is on the way. What\u2019s on your mind?`
+    : "What\u2019s on your mind?";
+
+  const topicName = (id: string) => topics.find((t) => t.id === id)?.name || id;
+
+  if (!loaded) {
+    return (
+      <div className="min-h-[100dvh] bg-g-bg flex items-center justify-center">
+        <span className="flex gap-[3px]">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
+          ))}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-g-bg flex flex-col">
@@ -111,7 +187,7 @@ export default function HomePage() {
               className="border-none bg-transparent p-0 cursor-pointer"
               aria-label="Settings"
             >
-              <Avatar name={me} active />
+              <Avatar name={me || "P"} active />
             </button>
           </div>
         }
@@ -172,10 +248,10 @@ export default function HomePage() {
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-body text-[15px] font-semibold text-g-ink leading-[1.3]">
-                      {c.title}
+                      {c.title || "Untitled conversation"}
                     </span>
                     <span className="block font-body text-[12px] text-g-faint mt-[3px]">
-                      Breastfeeding · {c.who} · {c.when}
+                      {topicName(c.topic_id)} · {timeAgo(c.updated_at)}
                     </span>
                   </span>
                 </button>

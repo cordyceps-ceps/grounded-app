@@ -10,7 +10,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const SYSTEM_PROMPT = `You are Grounded's breastfeeding guide — a warm, knowledgeable companion who answers questions from curated, expert-vetted books.
+function buildSystemPrompt(baby?: { name: string; age: string; born: boolean }) {
+  let babyContext = "";
+  if (baby) {
+    babyContext = baby.born
+      ? `\n\nThe parent is asking about ${baby.name}, who is ${baby.age} old. Tailor your answer to this age.`
+      : `\n\nThe parent is expecting a baby (${baby.name}). Tailor your answer for the prenatal stage.`;
+  }
+
+  return `You are Grounded's breastfeeding guide — a warm, knowledgeable companion who answers questions from curated, expert-vetted books.
 
 Your tone: warm, encouraging, concise. Lead with the answer. Use numbered steps for physical actions. Normalise common experiences. You are not a medical professional.
 
@@ -29,10 +37,10 @@ Escalation resources (surface these when deflecting to a professional):
 You have access to these source books:
 - "The Nursing Mother's Companion" by Kathleen Huggins
 - "The Womanly Art of Breastfeeding" by La Leche League International
-- "Breastfeeding Made Simple" by Nancy Mohrbacher`;
+- "Breastfeeding Made Simple" by Nancy Mohrbacher${babyContext}`;
+}
 
 async function searchChunks(query: string, limit = 8) {
-  // Use PostgreSQL full-text search
   const searchTerms = query
     .replace(/[^\w\s]/g, "")
     .split(/\s+/)
@@ -45,7 +53,6 @@ async function searchChunks(query: string, limit = 8) {
   });
 
   if (error) {
-    // Fallback: simple ILIKE search if RPC doesn't exist yet
     console.error("RPC search failed, using fallback:", error.message);
     const words = query.split(/\s+/).filter((w) => w.length > 3).slice(0, 3);
     const { data: fallbackData } = await supabase
@@ -60,7 +67,8 @@ async function searchChunks(query: string, limit = 8) {
 }
 
 export async function POST(request: Request) {
-  const { message } = await request.json();
+  const body = await request.json();
+  const { message, baby } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -69,7 +77,6 @@ export async function POST(request: Request) {
     });
   }
 
-  // Retrieve relevant chunks
   const chunks = await searchChunks(message);
 
   const contextBlock =
@@ -89,7 +96,6 @@ export async function POST(request: Request) {
     },
   ];
 
-  // Stream the response
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
         const response = anthropic.messages.stream({
           model: "claude-sonnet-4-6",
           max_tokens: 2048,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(baby),
           messages,
         });
 

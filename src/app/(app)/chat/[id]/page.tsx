@@ -5,15 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { Sun, Moon, Leaf, Mic, ArrowUp, Book, Copy, Pin, Phone, Play } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
-
-// Mock data
-const MOCK_ME = "Nick";
-const MOCK_TOPIC = { id: "bf", name: "Breastfeeding" };
-const SUGGESTED = [
-  "Is cluster feeding normal in the evenings?",
-  "How do I know he\u2019s getting enough milk?",
-  "How do I get a deeper, comfier latch?",
-];
+import { createClient } from "@/lib/supabase/client";
+import { formatBabyAge } from "@/lib/utils";
 
 interface AnswerBlock {
   type: "lead" | "h" | "p" | "ol" | "video" | "callout";
@@ -24,6 +17,17 @@ interface AnswerBlock {
   channel?: string;
   dur?: string;
   resource?: { name: string; tel: string };
+}
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface BabyContext {
+  name: string;
+  age: string;
+  born: boolean;
 }
 
 function DarkToggle() {
@@ -50,7 +54,7 @@ function mdInline(s: string): string {
     .replace(/\*(.+?)\*/g, "<em>$1</em>");
 }
 
-function AnswerBlockRenderer({ block, index }: { block: AnswerBlock; index: number }) {
+function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
   if (block.type === "h") {
     return (
       <div className="g-up font-display text-[25px] text-g-prim mt-[22px] mb-[2px] leading-[1.05]">
@@ -134,6 +138,12 @@ function AnswerBlockRenderer({ block, index }: { block: AnswerBlock; index: numb
   return null;
 }
 
+const SUGGESTED = [
+  "Is cluster feeding normal in the evenings?",
+  "How do I know he\u2019s getting enough milk?",
+  "How do I get a deeper, comfier latch?",
+];
+
 export default function ChatPage() {
   const router = useRouter();
   const params = useParams();
@@ -141,16 +151,87 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [asked, setAsked] = useState(false);
-  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-
-  // Streamed answer state
   const [leadText, setLeadText] = useState("");
   const [blocks, setBlocks] = useState<AnswerBlock[]>([]);
   const [done, setDone] = useState(false);
   const [sources, setSources] = useState<string[]>([]);
+  const [topicId, setTopicId] = useState("bf");
+  const [topicName, setTopicName] = useState("Breastfeeding");
+  const [baby, setBaby] = useState<BabyContext | null>(null);
+  const [me, setMe] = useState("");
+  const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load user context and existing conversation
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("display_name, family_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
+        setFamilyId(profile.family_id);
+
+        const { data: babies } = await supabase
+          .from("baby_profiles")
+          .select("name, born, dob, due_date")
+          .eq("family_id", profile.family_id)
+          .limit(1);
+
+        if (babies && babies.length > 0) {
+          const b = babies[0];
+          setBaby({
+            name: b.name,
+            born: b.born,
+            age: b.born && b.dob ? formatBabyAge(b.dob) : "",
+          });
+        }
+      }
+
+      // Load existing conversation
+      if (!isNew && params.id) {
+        const { data: convo } = await supabase
+          .from("conversations")
+          .select("id, topic_id")
+          .eq("id", params.id)
+          .single();
+
+        if (convo) {
+          setTopicId(convo.topic_id);
+          const { data: msgs } = await supabase
+            .from("messages")
+            .select("role, content")
+            .eq("conversation_id", convo.id)
+            .order("created_at", { ascending: true });
+
+          if (msgs && msgs.length > 0) {
+            setMessages(msgs as Message[]);
+            // Parse the last assistant message for display
+            const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
+            if (lastAssistant) {
+              setBlocks(parseAnswer(lastAssistant.content));
+              setSources(extractSources(lastAssistant.content));
+              setDone(true);
+            }
+          }
+        }
+      }
+
+      setLoaded(true);
+    };
+    load();
+  }, [isNew, params.id]);
 
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
@@ -159,15 +240,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [leadText, blocks, asked, scrollToBottom]);
+  }, [leadText, blocks, messages, scrollToBottom]);
 
   const sendQuestion = useCallback(
     async (text: string) => {
       const q = text.trim();
-      if (!q) return;
+      if (!q || !familyId) return;
 
-      setQuestion(q);
-      setAsked(true);
+      const newMessages: Message[] = [...messages, { role: "user", content: q }];
+      setMessages(newMessages);
       setInput("");
       setStreaming(true);
       setLeadText("");
@@ -175,11 +256,48 @@ export default function ChatPage() {
       setDone(false);
       setSources([]);
 
+      const supabase = createClient();
+
+      // Create conversation if new
+      let currentConvoId = convoId;
+      if (!currentConvoId) {
+        const id = crypto.randomUUID();
+        const { error } = await supabase
+          .from("conversations")
+          .insert({
+            id,
+            family_id: familyId,
+            topic_id: topicId,
+            title: q.length > 120 ? q.slice(0, 117) + "..." : q,
+          });
+
+        if (error) {
+          console.error("Failed to create conversation:", error);
+        } else {
+          currentConvoId = id;
+          setConvoId(id);
+          // Update URL without navigation
+          window.history.replaceState(null, "", `/chat/${id}`);
+        }
+      }
+
+      // Save user message
+      if (currentConvoId) {
+        await supabase.from("messages").insert({
+          conversation_id: currentConvoId,
+          role: "user",
+          content: q,
+        });
+      }
+
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: q }),
+          body: JSON.stringify({
+            message: q,
+            baby: baby ? { name: baby.name, age: baby.age, born: baby.born } : undefined,
+          }),
         });
 
         const reader = response.body?.getReader();
@@ -209,9 +327,24 @@ export default function ChatPage() {
           }
         }
 
-        // Parse the full response into structured blocks
-        const parsedBlocks = parseAnswer(fullText);
-        setBlocks(parsedBlocks);
+        // Save assistant message
+        if (currentConvoId) {
+          await supabase.from("messages").insert({
+            conversation_id: currentConvoId,
+            role: "assistant",
+            content: fullText,
+            sources: extractSources(fullText),
+          });
+
+          // Update conversation timestamp
+          await supabase
+            .from("conversations")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", currentConvoId);
+        }
+
+        setMessages([...newMessages, { role: "assistant", content: fullText }]);
+        setBlocks(parseAnswer(fullText));
         setSources(extractSources(fullText));
         setDone(true);
       } catch {
@@ -221,30 +354,47 @@ export default function ChatPage() {
         setStreaming(false);
       }
     },
-    []
+    [messages, convoId, familyId, topicId, baby]
   );
 
   const handleSend = () => {
     if (input.trim()) sendQuestion(input);
   };
 
+  const hasAsked = messages.length > 0;
+  const lastUserMsg = messages.filter((m) => m.role === "user").pop();
+  const question = lastUserMsg?.content || "";
+
+  if (!loaded) {
+    return (
+      <div className="min-h-[100dvh] bg-g-bg flex items-center justify-center">
+        <span className="flex gap-[3px]">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
+          ))}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] bg-g-bg flex flex-col">
       <TopBar
-        onBack={() => router.push(`/topic/${MOCK_TOPIC.id}`)}
-        title={asked ? MOCK_TOPIC.name : undefined}
+        onBack={() => router.push(hasAsked ? `/topic/${topicId}` : "/home")}
+        title={hasAsked ? topicName : undefined}
         right={<DarkToggle />}
       />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-3">
-        {!asked ? (
+        {!hasAsked ? (
           /* Empty state with suggestions */
           <div className="g-up pt-4">
             <div className="font-display text-[36px] leading-[1.05] text-g-ink mb-3">
               What&rsquo;s on your mind?
             </div>
             <div className="font-body text-[15px] leading-[1.55] text-g-sub mb-[26px]">
-              I&rsquo;ll answer from the three books on the shelf — with Theo in mind. Type it, or tap the mic.
+              I&rsquo;ll answer from the three books on the shelf
+              {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.
             </div>
             <Kicker className="mb-[13px]">Maybe start with</Kicker>
             <div className="flex flex-col gap-[10px]">
@@ -263,7 +413,7 @@ export default function ChatPage() {
           <>
             {/* User message */}
             <div className="flex flex-col items-end mb-[22px]">
-              <Kicker className="mb-[6px] mr-1">{MOCK_ME}</Kicker>
+              <Kicker className="mb-[6px] mr-1">{me}</Kicker>
               <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
                 {question}
               </div>
@@ -290,15 +440,13 @@ export default function ChatPage() {
               </div>
 
               {/* Streamed text */}
-              {leadText && (
+              {(leadText || (done && blocks.length > 0)) && (
                 <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
                   {done && blocks.length > 0 ? (
-                    /* Render structured blocks */
                     blocks.map((block, i) => (
-                      <AnswerBlockRenderer key={i} block={block} index={i} />
+                      <AnswerBlockRenderer key={i} block={block} />
                     ))
                   ) : (
-                    /* Streaming: show raw text */
                     <>
                       <span dangerouslySetInnerHTML={{ __html: mdInline(leadText) }} />
                       {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
@@ -325,7 +473,10 @@ export default function ChatPage() {
                   )}
                   <div className="flex gap-[9px] mt-[14px] mb-4">
                     <button
-                      onClick={() => navigator.clipboard.writeText(leadText)}
+                      onClick={() => {
+                        const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
+                        if (lastAssistant) navigator.clipboard.writeText(lastAssistant.content);
+                      }}
                       className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
                     >
                       <Copy size={14} />Copy
@@ -352,7 +503,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={asked ? "Ask a follow-up\u2026" : "Type your question\u2026"}
+            placeholder={hasAsked ? "Ask a follow-up\u2026" : "Type your question\u2026"}
             className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint"
           />
           <button
@@ -409,7 +560,6 @@ function parseAnswer(text: string): AnswerBlock[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Heading
     if (trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
       flushParagraph();
       flushList();
@@ -417,7 +567,6 @@ function parseAnswer(text: string): AnswerBlock[] {
       continue;
     }
 
-    // Numbered list item
     const listMatch = trimmed.match(/^\d+\.\s+(.+)/);
     if (listMatch) {
       flushParagraph();
@@ -425,21 +574,18 @@ function parseAnswer(text: string): AnswerBlock[] {
       continue;
     }
 
-    // Bullet list item — treat same as numbered
-    if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+    if (trimmed.startsWith("- ") || trimmed.startsWith("\u2022 ")) {
       flushParagraph();
       currentList.push(trimmed.slice(2));
       continue;
     }
 
-    // Empty line
     if (!trimmed) {
       flushList();
       flushParagraph();
       continue;
     }
 
-    // Regular text
     flushList();
     if (currentParagraph) currentParagraph += " ";
     currentParagraph += trimmed;
