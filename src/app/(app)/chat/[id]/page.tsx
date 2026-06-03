@@ -179,7 +179,7 @@ export default function ChatPage() {
   const params = useParams();
   const isNew = params.id === "new";
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -720,14 +720,26 @@ export default function ChatPage() {
         className="shrink-0 bg-g-bg"
         style={{ padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 8px)` }}
       >
-        <div className="flex items-center gap-[9px] bg-g-panel rounded-[26px] py-[7px] pl-[18px] pr-[7px] shadow-[var(--g-shadow)]">
-          <input
+        <div className="flex items-end gap-[9px] bg-g-panel rounded-[26px] py-[7px] pl-[18px] pr-[7px] shadow-[var(--g-shadow)]">
+          <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            onChange={(e) => {
+              setInput(e.target.value);
+              const el = e.target;
+              el.style.height = "auto";
+              el.style.height = Math.min(el.scrollHeight, 72) + "px";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            rows={1}
             placeholder={hasAsked ? "Ask a follow-up\u2026" : "Type your question\u2026"}
-            className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint"
+            className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint resize-none leading-[1.5]"
+            style={{ maxHeight: 72 }}
           />
           <button
             onClick={handleMicPress}
