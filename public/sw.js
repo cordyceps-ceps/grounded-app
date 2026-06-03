@@ -1,5 +1,5 @@
-const CACHE_NAME = "grounded-v1";
-const SHELL_URLS = ["/", "/home", "/manifest.json", "/icons/icon-192.png"];
+const CACHE_NAME = "grounded-v2";
+const SHELL_URLS = ["/", "/home", "/manifest.json", "/icons/icon-192.png", "/icons/badge-96.png"];
 
 // Cache app shell on install
 self.addEventListener("install", (event) => {
@@ -62,7 +62,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "Your answer is ready.",
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    badge: "/icons/badge-96.png",
     tag: data.conversationId || "grounded",
     data: { url: data.url || "/" },
   };

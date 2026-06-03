@@ -293,7 +293,17 @@ export async function POST(request: Request) {
           // Send push notification before closing stream (must await or Vercel kills it)
           if (userId) {
             try {
-              const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
+              const plain = fullText
+                .replace(/\*\*(.+?)\*\*/g, "$1")
+                .replace(/\*(.+?)\*/g, "$1")
+                .replace(/^#{1,6}\s+/gm, "")
+                .replace(/^[-*+]\s+/gm, "• ")
+                .replace(/^\d+\.\s+/gm, "")
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+                .replace(/`([^`]+)`/g, "$1")
+                .replace(/\n{2,}/g, "\n")
+                .trim();
+              const preview = plain.slice(0, 120) + (plain.length > 120 ? "…" : "");
               const baseUrl = new URL(request.url).origin;
               await fetch(`${baseUrl}/api/push/send`, {
                 method: "POST",
