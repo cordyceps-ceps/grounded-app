@@ -163,7 +163,7 @@ export default function ChatPage() {
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  const { me, familyId, baby: userBaby, loaded: userLoaded, refreshConvos } = useUser();
+  const { me, familyId, baby: userBaby, facts: allFacts, loaded: userLoaded, refreshConvos } = useUser();
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, born: userBaby.born, age: userBaby.age || "" }
     : null;
@@ -262,12 +262,17 @@ export default function ChatPage() {
       }
 
       try {
+        const topicFacts = allFacts
+          .filter((f) => f.topic_id === topicId)
+          .map((f) => f.content);
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: q,
             baby: baby ? { name: baby.name, age: baby.age, born: baby.born } : undefined,
+            facts: topicFacts.length > 0 ? topicFacts : undefined,
           }),
         });
 
@@ -326,7 +331,7 @@ export default function ChatPage() {
         setStreaming(false);
       }
     },
-    [messages, convoId, familyId, topicId, baby]
+    [messages, convoId, familyId, topicId, baby, allFacts]
   );
 
   const handleSend = () => {

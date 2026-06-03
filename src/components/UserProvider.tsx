@@ -20,13 +20,24 @@ interface Convo {
   updated_at: string;
 }
 
+interface TopicFact {
+  id: string;
+  topic_id: string;
+  content: string;
+  pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface UserContextValue {
   me: string;
   familyId: string | null;
   baby: Baby | null;
   convos: Convo[];
+  facts: TopicFact[];
   loaded: boolean;
   refreshConvos: () => Promise<void>;
+  refreshFacts: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue>({
@@ -34,8 +45,10 @@ const UserContext = createContext<UserContextValue>({
   familyId: null,
   baby: null,
   convos: [],
+  facts: [],
   loaded: false,
   refreshConvos: async () => {},
+  refreshFacts: async () => {},
 });
 
 export function useUser() {
@@ -47,6 +60,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [baby, setBaby] = useState<Baby | null>(null);
   const [convos, setConvos] = useState<Convo[]>([]);
+  const [facts, setFacts] = useState<TopicFact[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const loadConvos = async (fId: string) => {
@@ -58,6 +72,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .order("updated_at", { ascending: false })
       .limit(20);
     if (data) setConvos(data);
+  };
+
+  const loadFacts = async (fId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("topic_facts")
+      .select("id, topic_id, content, pinned, created_at, updated_at")
+      .eq("family_id", fId)
+      .order("created_at", { ascending: false });
+    if (data) setFacts(data);
   };
 
   useEffect(() => {
@@ -83,6 +107,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             .eq("family_id", profile.family_id)
             .limit(1),
           loadConvos(profile.family_id),
+          loadFacts(profile.family_id),
         ]);
 
         if (babiesRes.data && babiesRes.data.length > 0) {
@@ -102,8 +127,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (familyId) await loadConvos(familyId);
   };
 
+  const refreshFacts = async () => {
+    if (familyId) await loadFacts(familyId);
+  };
+
   return (
-    <UserContext.Provider value={{ me, familyId, baby, convos, loaded, refreshConvos }}>
+    <UserContext.Provider value={{ me, familyId, baby, convos, facts, loaded, refreshConvos, refreshFacts }}>
       {children}
     </UserContext.Provider>
   );

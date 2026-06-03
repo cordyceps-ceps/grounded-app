@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Plus, ChevronRight, Clock, Play } from "lucide-react";
+import { Sun, Moon, Plus, ChevronRight, Clock, Play, Pin, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
+import { createClient } from "@/lib/supabase/client";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -36,22 +37,89 @@ function timeAgo(date: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
+const STALE_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+
+function isStale(updatedAt: string, pinned: boolean): boolean {
+  if (pinned) return false;
+  return Date.now() - new Date(updatedAt).getTime() > STALE_MS;
+}
+
 export default function TopicPage() {
   const router = useRouter();
   const params = useParams();
   const topic = getTopicById(params.id as string);
-  const { baby, convos: allConvos } = useUser();
-  const [newFact, setNewFact] = useState(false);
+  const { baby, convos: allConvos, facts: allFacts, familyId, refreshFacts } = useUser();
+
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [factText, setFactText] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (!topic) return null;
 
   const convos = topic.ready ? allConvos.filter((c) => c.topic_id === topic.id) : [];
+  const topicFacts = allFacts.filter((f) => f.topic_id === topic.id);
+  const staleFacts = topicFacts.filter((f) => isStale(f.updated_at, f.pinned));
 
   const babyAge = baby?.age;
   const babyDobFormatted = baby?.dob
     ? new Date(baby.dob).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : null;
+
+  const openAdd = () => {
+    setEditingId(null);
+    setFactText("");
+    setSheetOpen(true);
+  };
+
+  const openEdit = (fact: { id: string; content: string }) => {
+    setEditingId(fact.id);
+    setFactText(fact.content);
+    setSheetOpen(true);
+  };
+
+  const handleSave = async () => {
+    const text = factText.trim();
+    if (!text || !familyId) return;
+    setSaving(true);
+    const supabase = createClient();
+
+    if (editingId) {
+      await supabase
+        .from("topic_facts")
+        .update({ content: text, updated_at: new Date().toISOString() })
+        .eq("id", editingId);
+    } else {
+      await supabase.from("topic_facts").insert({
+        family_id: familyId,
+        topic_id: topic.id,
+        content: text,
+      });
+    }
+
+    await refreshFacts();
+    setSaving(false);
+    setSheetOpen(false);
+    setFactText("");
+    setEditingId(null);
+  };
+
+  const handleDelete = async (factId: string) => {
+    const supabase = createClient();
+    await supabase.from("topic_facts").delete().eq("id", factId);
+    setExpandedId(null);
+    await refreshFacts();
+  };
+
+  const handlePin = async (factId: string, currentlyPinned: boolean) => {
+    const supabase = createClient();
+    await supabase
+      .from("topic_facts")
+      .update({ pinned: !currentlyPinned })
+      .eq("id", factId);
+    await refreshFacts();
+  };
 
   return (
     <div className="h-[100dvh] bg-g-bg flex flex-col">
@@ -89,10 +157,77 @@ export default function TopicPage() {
               </div>
             ) : (
               <div className="bg-g-panel2 rounded-[13px] p-[15px]">
+                {/* Stale facts banner */}
+                {staleFacts.length > 0 && (
+                  <div className="flex items-start gap-[10px] bg-g-honey-soft rounded-[11px] p-[12px] mb-3">
+                    <AlertTriangle size={16} className="text-g-honey shrink-0 mt-[2px]" />
+                    <div className="font-body text-[13px] leading-[1.45] text-g-ink">
+                      Some facts about {baby.name} might be out of date — worth a quick check?
+                    </div>
+                  </div>
+                )}
+
+                {/* Facts list */}
+                {topicFacts.length > 0 && (
+                  <div className="flex flex-col gap-[8px] mb-3">
+                    {topicFacts.map((fact) => {
+                      const stale = isStale(fact.updated_at, fact.pinned);
+                      const expanded = expandedId === fact.id;
+                      return (
+                        <div key={fact.id}>
+                          <button
+                            onClick={() => setExpandedId(expanded ? null : fact.id)}
+                            className={`w-full text-left cursor-pointer border-none rounded-[11px] py-[10px] px-[13px] flex items-start gap-[10px] ${
+                              stale ? "bg-g-honey-soft/50 ring-1 ring-g-honey/30" : "bg-g-bg"
+                            }`}
+                          >
+                            <span className="flex-1 font-body text-[13.5px] leading-[1.45] text-g-ink min-w-0">
+                              {fact.content}
+                            </span>
+                            {fact.pinned && (
+                              <Pin size={13} className="text-g-prim shrink-0 mt-[3px] fill-current" />
+                            )}
+                            {stale && !fact.pinned && (
+                              <span className="font-body text-[11px] text-g-honey font-semibold shrink-0 mt-[2px]">stale</span>
+                            )}
+                          </button>
+
+                          {/* Expanded actions */}
+                          {expanded && (
+                            <div className="flex gap-[8px] mt-[6px] ml-[13px]">
+                              <button
+                                onClick={() => openEdit(fact)}
+                                className="flex items-center gap-[5px] font-body text-[12px] font-semibold text-g-sub bg-g-bg border-none rounded-[8px] py-[6px] px-[10px] cursor-pointer"
+                              >
+                                <Pencil size={12} />Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(fact.id)}
+                                className="flex items-center gap-[5px] font-body text-[12px] font-semibold text-g-sub bg-g-bg border-none rounded-[8px] py-[6px] px-[10px] cursor-pointer"
+                              >
+                                <Trash2 size={12} />Remove
+                              </button>
+                              <button
+                                onClick={() => handlePin(fact.id, fact.pinned)}
+                                className="flex items-center gap-[5px] font-body text-[12px] font-semibold text-g-sub bg-g-bg border-none rounded-[8px] py-[6px] px-[10px] cursor-pointer"
+                              >
+                                <Pin size={12} className={fact.pinned ? "fill-current" : ""} />
+                                {fact.pinned ? "Unpin" : "Pin"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="font-body text-[13.5px] leading-[1.5] text-g-sub mb-3">
-                  Tell Grounded something that&rsquo;s true for {baby.name} right now — like how feeding&rsquo;s going — and answers get more relevant.
+                  {topicFacts.length === 0
+                    ? `Tell Grounded something that\u2019s true for ${baby.name} right now \u2014 like how feeding\u2019s going \u2014 and answers get more relevant.`
+                    : `These help Grounded give ${baby.name} more relevant answers.`}
                 </div>
-                <Button size="sm" variant="soft" icon={Plus} onClick={() => setNewFact(true)}>
+                <Button size="sm" variant="soft" icon={Plus} onClick={openAdd}>
                   Add a fact
                 </Button>
               </div>
@@ -193,11 +328,11 @@ export default function TopicPage() {
         </div>
       )}
 
-      {/* New fact sheet (placeholder for future) */}
+      {/* Add / Edit fact sheet */}
       <Sheet
-        open={newFact}
-        onClose={() => { setNewFact(false); setFactText(""); }}
-        title="Add a fact"
+        open={sheetOpen}
+        onClose={() => { setSheetOpen(false); setFactText(""); setEditingId(null); }}
+        title={editingId ? "Edit fact" : "Add a fact"}
       >
         <Field
           label={`What\u2019s true for ${baby?.name || "your baby"} right now?`}
@@ -206,8 +341,8 @@ export default function TopicPage() {
           placeholder="e.g. Currently cluster feeding in the evenings"
         />
         <div className="mt-4">
-          <Button full onClick={() => { setNewFact(false); setFactText(""); }}>
-            Save
+          <Button full onClick={handleSave} disabled={!factText.trim() || saving}>
+            {saving ? "Saving\u2026" : "Save"}
           </Button>
         </div>
       </Sheet>

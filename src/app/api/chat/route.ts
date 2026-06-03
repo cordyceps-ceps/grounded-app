@@ -10,12 +10,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function buildSystemPrompt(baby?: { name: string; age: string; born: boolean }) {
+function buildSystemPrompt(baby?: { name: string; age: string; born: boolean }, facts?: string[]) {
   let babyContext = "";
   if (baby) {
     babyContext = baby.born
       ? `\n\nThe parent is asking about ${baby.name}, who is ${baby.age} old. Tailor your answer to this age.`
       : `\n\nThe parent is expecting a baby (${baby.name}). Tailor your answer for the prenatal stage.`;
+  }
+
+  let factsContext = "";
+  if (facts && facts.length > 0) {
+    factsContext = `\n\nCurrent facts the parent has noted about ${baby?.name || "their baby"}:\n${facts.map((f) => `- ${f}`).join("\n")}\nUse these to personalise your answer where relevant.`;
   }
 
   return `You are Grounded's breastfeeding guide — a warm, knowledgeable companion who answers questions from curated, expert-vetted books.
@@ -37,7 +42,7 @@ Escalation resources (surface these when deflecting to a professional):
 You have access to these source books:
 - "The Nursing Mother's Companion" by Kathleen Huggins
 - "The Womanly Art of Breastfeeding" by La Leche League International
-- "Breastfeeding Made Simple" by Nancy Mohrbacher${babyContext}`;
+- "Breastfeeding Made Simple" by Nancy Mohrbacher${babyContext}${factsContext}`;
 }
 
 async function searchChunks(query: string, limit = 8) {
@@ -68,7 +73,7 @@ async function searchChunks(query: string, limit = 8) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { message, baby } = body;
+  const { message, baby, facts } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -103,7 +108,7 @@ export async function POST(request: Request) {
         const response = anthropic.messages.stream({
           model: "claude-sonnet-4-6",
           max_tokens: 2048,
-          system: buildSystemPrompt(baby),
+          system: buildSystemPrompt(baby, facts),
           messages,
         });
 
