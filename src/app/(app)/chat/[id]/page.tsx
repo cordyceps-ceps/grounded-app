@@ -353,9 +353,6 @@ export default function ChatPage() {
                 fullText += parsed.text;
                 setLeadText(fullText);
               }
-              if (parsed.followups) {
-                setFollowUps(parsed.followups);
-              }
             } catch {
               // skip malformed
             }
@@ -386,6 +383,18 @@ export default function ChatPage() {
         setDone(true);
         refreshConvos();
         refreshSuggestions(topicId);
+
+        // Generate follow-up questions (non-blocking)
+        fetch("/api/followups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.followups?.length > 0) setFollowUps(data.followups);
+          })
+          .catch(() => {});
       } catch {
         setLeadText("Something went wrong. Please try again.");
         setDone(true);
@@ -514,6 +523,20 @@ export default function ChatPage() {
                       >
                         <Pin size={14} className={msg.pinned ? "fill-current" : ""} />{msg.pinned ? "Pinned" : "Pin answer"}
                       </button>
+                    </div>
+                  )}
+                  {/* Show follow-ups after the last assistant message */}
+                  {i === historyMessages.length - 1 && msg.role === "assistant" && followUps.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-1 mb-2">
+                      {followUps.map((q, j) => (
+                        <button
+                          key={j}
+                          onClick={() => sendQuestion(q)}
+                          className="text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
+                        >
+                          {q}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
