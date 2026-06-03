@@ -330,19 +330,25 @@ export default function ChatPage() {
         if (!reader) throw new Error("No reader");
         const decoder = new TextDecoder();
         let fullText = "";
+        let sseBuffer = "";
 
         while (true) {
           const { done: readerDone, value } = await reader.read();
           if (readerDone) break;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n\n").filter(Boolean);
+          sseBuffer += decoder.decode(value, { stream: true });
 
-          for (const line of lines) {
-            if (line === "data: [DONE]") continue;
-            if (!line.startsWith("data: ")) continue;
+          // Process complete SSE events (separated by \n\n)
+          const parts = sseBuffer.split("\n\n");
+          // Keep the last part as buffer (might be incomplete)
+          sseBuffer = parts.pop() || "";
+
+          for (const line of parts) {
+            const trimmed = line.trim();
+            if (trimmed === "data: [DONE]") continue;
+            if (!trimmed.startsWith("data: ")) continue;
             try {
-              const parsed = JSON.parse(line.slice(6));
+              const parsed = JSON.parse(trimmed.slice(6));
               if (parsed.text) {
                 fullText += parsed.text;
                 setLeadText(fullText);
