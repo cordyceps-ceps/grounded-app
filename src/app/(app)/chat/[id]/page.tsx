@@ -701,14 +701,9 @@ function parseAnswer(text: string): AnswerBlock[] {
       continue;
     }
 
-    // Non-blank text while inside a list: append to last item (multi-line)
+    // Non-blank text while inside a list: flush list and start new paragraph
     if (inList()) {
-      if (currentOl.length > 0) {
-        currentOl[currentOl.length - 1] += " " + trimmed;
-      } else {
-        currentUl[currentUl.length - 1] += " " + trimmed;
-      }
-      continue;
+      flushLists();
     }
 
     // Regular paragraph text
