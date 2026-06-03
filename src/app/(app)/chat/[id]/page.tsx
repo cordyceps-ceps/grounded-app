@@ -388,7 +388,7 @@ export default function ChatPage() {
         fetch("/api/followups", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q }),
+          body: JSON.stringify({ question: q, answer: fullText }),
         })
           .then((r) => r.json())
           .then((data) => {
