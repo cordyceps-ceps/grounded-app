@@ -347,24 +347,23 @@ export default function ChatPage() {
                 fullText += parsed.text;
                 setLeadText(fullText);
               }
+              if (parsed.followups) {
+                setFollowUps(parsed.followups);
+              }
             } catch {
               // skip malformed
             }
           }
         }
 
-        // Extract follow-ups and strip them from saved content
-        const followUpQuestions = extractFollowUps(fullText);
-        const cleanText = stripFollowUps(fullText);
-
-        // Save assistant message (without follow-up markers)
+        // Save assistant message
         let savedMsgId: string | undefined;
         if (currentConvoId) {
           const { data: savedMsg } = await supabase.from("messages").insert({
             conversation_id: currentConvoId,
             role: "assistant",
-            content: cleanText,
-            sources: extractSources(cleanText),
+            content: fullText,
+            sources: extractSources(fullText),
           }).select("id").single();
           savedMsgId = savedMsg?.id;
 
@@ -375,10 +374,9 @@ export default function ChatPage() {
             .eq("id", currentConvoId);
         }
 
-        setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: cleanText, pinned: false }]);
-        setBlocks(parseAnswer(cleanText));
-        setSources(extractSources(cleanText));
-        setFollowUps(followUpQuestions);
+        setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: fullText, pinned: false }]);
+        setBlocks(parseAnswer(fullText));
+        setSources(extractSources(fullText));
         setDone(true);
         refreshConvos();
         refreshSuggestions(topicId);
@@ -681,9 +679,6 @@ function parseAnswer(text: string): AnswerBlock[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Skip follow-up question markers
-    if (trimmed.startsWith(">>>")) continue;
-
     // Headings
     if (/^#{1,4}\s+/.test(trimmed)) {
       flushParagraph();
@@ -756,19 +751,3 @@ function extractSources(text: string): string[] {
   return Array.from(sourceSet);
 }
 
-/** Extract follow-up questions (lines starting with >>>) */
-function extractFollowUps(text: string): string[] {
-  return text
-    .split("\n")
-    .filter((line) => line.trim().startsWith(">>>"))
-    .map((line) => line.trim().replace(/^>>>\s*/, ""));
-}
-
-/** Strip follow-up lines from content before saving/displaying */
-function stripFollowUps(text: string): string {
-  return text
-    .split("\n")
-    .filter((line) => !line.trim().startsWith(">>>"))
-    .join("\n")
-    .trimEnd();
-}

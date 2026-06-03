@@ -44,9 +44,6 @@ IMPORTANT RULES:
 - Keep answers scannable: bold key terms, numbered steps for physical actions, bullet points for options.
 - When something is common/normal, say so reassuringly.
 - End with a brief encouragement and mention professional support is available if needed.
-- After your answer, add exactly 2 follow-up questions the parent might find helpful but might not think to ask. These should be practical, relevant to what was just discussed, and feel natural. Format them on the last two lines, each starting with ">>>" like this:
->>>How do I know she's getting enough milk?
->>>What positions work best for a newborn?
 
 Escalation resources (surface these when deflecting to a professional):
 - National Breastfeeding Helpline: 0300 100 0212
@@ -273,6 +270,32 @@ export async function POST(request: Request) {
         });
 
         await response.finalMessage();
+
+        // Generate follow-up questions via Haiku (non-blocking, best-effort)
+        try {
+          const followUpRes = await anthropic.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 150,
+            messages: [{
+              role: "user",
+              content: `A parent asked about breastfeeding: "${message}"
+
+Suggest 2 practical follow-up questions they might find helpful but might not think to ask. Keep them short, warm, and conversational — like something a tired parent would type at 3am.
+
+Return ONLY a JSON array of 2 strings.`,
+            }],
+          });
+          const fuText = followUpRes.content[0].type === "text" ? followUpRes.content[0].text : "[]";
+          const followUps = JSON.parse(fuText);
+          if (Array.isArray(followUps) && followUps.length > 0) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ followups: followUps.slice(0, 2) })}\n\n`)
+            );
+          }
+        } catch {
+          // Follow-ups are non-critical — skip silently
+        }
+
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (err) {
