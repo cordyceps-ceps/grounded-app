@@ -321,6 +321,7 @@ export default function ChatPage() {
       const newMessages: Message[] = [...messages, { role: "user", content: q }];
       setMessages(newMessages);
       setInput("");
+      if (inputRef.current) inputRef.current.style.height = "auto";
       setStreaming(true);
       setLeadText("");
       setBlocks([]);
@@ -790,7 +791,7 @@ export default function ChatPage() {
             }}
             rows={1}
             placeholder={hasAsked ? "Ask a follow-up\u2026" : "Type your question\u2026"}
-            className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint resize-none leading-[1.5]"
+            className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint resize-none leading-[1.5] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ maxHeight: 72 }}
           />
           <button
