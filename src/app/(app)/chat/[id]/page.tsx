@@ -21,8 +21,10 @@ interface AnswerBlock {
 }
 
 interface Message {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  pinned?: boolean;
 }
 
 interface BabyContext {
@@ -189,7 +191,7 @@ export default function ChatPage() {
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  const { me, familyId, baby: userBaby, facts: allFacts, loaded: userLoaded, refreshConvos } = useUser();
+  const { me, familyId, baby: userBaby, facts: allFacts, loaded: userLoaded, refreshConvos, refreshPins } = useUser();
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, born: userBaby.born, age: userBaby.age || "" }
     : null;
@@ -209,7 +211,7 @@ export default function ChatPage() {
         setTopicId(convo.topic_id);
         const { data: msgs } = await supabase
           .from("messages")
-          .select("role, content")
+          .select("id, role, content, pinned")
           .eq("conversation_id", convo.id)
           .order("created_at", { ascending: true });
 
@@ -337,13 +339,15 @@ export default function ChatPage() {
         }
 
         // Save assistant message
+        let savedMsgId: string | undefined;
         if (currentConvoId) {
-          await supabase.from("messages").insert({
+          const { data: savedMsg } = await supabase.from("messages").insert({
             conversation_id: currentConvoId,
             role: "assistant",
             content: fullText,
             sources: extractSources(fullText),
-          });
+          }).select("id").single();
+          savedMsgId = savedMsg?.id;
 
           // Update conversation timestamp
           await supabase
@@ -352,7 +356,7 @@ export default function ChatPage() {
             .eq("id", currentConvoId);
         }
 
-        setMessages([...newMessages, { role: "assistant", content: fullText }]);
+        setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: fullText, pinned: false }]);
         setBlocks(parseAnswer(fullText));
         setSources(extractSources(fullText));
         setDone(true);
@@ -369,6 +373,18 @@ export default function ChatPage() {
 
   const handleSend = () => {
     if (input.trim()) sendQuestion(input);
+  };
+
+  const handlePin = async (msgId: string, currentlyPinned: boolean) => {
+    const supabase = createClient();
+    await supabase
+      .from("messages")
+      .update({ pinned: !currentlyPinned })
+      .eq("id", msgId);
+    setMessages((prev) =>
+      prev.map((m) => m.id === msgId ? { ...m, pinned: !currentlyPinned } : m)
+    );
+    refreshPins();
   };
 
   const hasAsked = messages.length > 0;
@@ -459,6 +475,22 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
+                  {msg.id && (
+                    <div className="flex gap-[9px] mt-[14px] mb-4">
+                      <button
+                        onClick={() => navigator.clipboard.writeText(msg.content)}
+                        className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
+                      >
+                        <Copy size={14} />Copy
+                      </button>
+                      <button
+                        onClick={() => handlePin(msg.id!, !!msg.pinned)}
+                        className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)] ${msg.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
+                      >
+                        <Pin size={14} className={msg.pinned ? "fill-current" : ""} />{msg.pinned ? "Pinned" : "Pin answer"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             ))}
@@ -518,9 +550,18 @@ export default function ChatPage() {
                         >
                           <Copy size={14} />Copy
                         </button>
-                        <button className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]">
-                          <Pin size={14} />Pin answer
-                        </button>
+                        {(() => {
+                          const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
+                          if (!lastAssistant?.id) return null;
+                          return (
+                            <button
+                              onClick={() => handlePin(lastAssistant.id!, !!lastAssistant.pinned)}
+                              className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)] ${lastAssistant.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
+                            >
+                              <Pin size={14} className={lastAssistant.pinned ? "fill-current" : ""} />{lastAssistant.pinned ? "Pinned" : "Pin answer"}
+                            </button>
+                          );
+                        })()}
                       </div>
                     </>
                   )}

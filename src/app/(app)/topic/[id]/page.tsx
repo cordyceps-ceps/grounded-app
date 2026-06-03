@@ -48,7 +48,7 @@ export default function TopicPage() {
   const router = useRouter();
   const params = useParams();
   const topic = getTopicById(params.id as string);
-  const { baby, convos: allConvos, facts: allFacts, familyId, refreshFacts } = useUser();
+  const { baby, convos: allConvos, facts: allFacts, pins: allPins, familyId, refreshFacts, refreshPins } = useUser();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [factText, setFactText] = useState("");
@@ -60,6 +60,7 @@ export default function TopicPage() {
 
   const convos = topic.ready ? allConvos.filter((c) => c.topic_id === topic.id) : [];
   const topicFacts = allFacts.filter((f) => f.topic_id === topic.id);
+  const topicPins = allPins.filter((p) => p.topic_id === topic.id);
   const staleFacts = topicFacts.filter((f) => isStale(f.updated_at, f.pinned));
 
   const babyAge = baby?.age;
@@ -119,6 +120,12 @@ export default function TopicPage() {
       .update({ pinned: !currentlyPinned })
       .eq("id", factId);
     await refreshFacts();
+  };
+
+  const handleUnpinAnswer = async (msgId: string) => {
+    const supabase = createClient();
+    await supabase.from("messages").update({ pinned: false }).eq("id", msgId);
+    await refreshPins();
   };
 
   return (
@@ -233,6 +240,40 @@ export default function TopicPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Saved answers */}
+        {topic.ready && topicPins.length > 0 && (
+          <>
+            <Kicker className="mb-[12px]">Saved answers</Kicker>
+            <div className="g-up flex flex-col gap-[10px] mb-[26px]">
+              {topicPins.map((pin) => (
+                <div
+                  key={pin.id}
+                  className="bg-g-panel rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)]"
+                >
+                  <Link
+                    href={`/chat/${pin.conversation_id}`}
+                    className="no-underline block"
+                  >
+                    <div className="font-body text-[14px] leading-[1.5] text-g-ink line-clamp-3">
+                      {pin.content.slice(0, 200)}
+                      {pin.content.length > 200 ? "…" : ""}
+                    </div>
+                    <div className="font-body text-[12px] text-g-faint mt-[6px]">
+                      {timeAgo(pin.created_at)} · tap to see full answer
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => handleUnpinAnswer(pin.id)}
+                    className="flex items-center gap-[5px] font-body text-[12px] font-semibold text-g-sub bg-g-panel2 border-none rounded-[8px] py-[5px] px-[10px] cursor-pointer mt-[8px]"
+                  >
+                    <Pin size={12} className="fill-current" />Unpin
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Sources */}
