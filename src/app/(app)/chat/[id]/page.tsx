@@ -567,10 +567,16 @@ function parseAnswer(text: string): AnswerBlock[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
+    if (/^#{1,4}\s+/.test(trimmed)) {
       flushParagraph();
       flushLists();
       blocks.push({ type: "h", text: trimmed.replace(/^#+\s+/, "") });
+      continue;
+    }
+
+    if (/^-{3,}$/.test(trimmed) || /^\*{3,}$/.test(trimmed)) {
+      flushParagraph();
+      flushLists();
       continue;
     }
 
