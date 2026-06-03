@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Loader2 } from "lucide-react";
+import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
+import { useUser } from "@/components/UserProvider";
 import { TOPICS } from "@/lib/topics";
-import { getGreeting, formatBabyAge } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { getGreeting } from "@/lib/utils";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -36,12 +37,12 @@ function Avatar({ name, active }: { name: string; active?: boolean }) {
   );
 }
 
-function TopicCard({ topic, loading, onTap }: { topic: (typeof TOPICS)[0]; loading?: boolean; onTap: () => void }) {
+function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
   return (
-    <button
-      onClick={onTap}
-      disabled={loading}
-      className="g-up g-tap w-full text-left cursor-pointer bg-g-panel border-none rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center disabled:opacity-70"
+    <Link
+      href={`/topic/${topic.id}`}
+      prefetch
+      className="g-up g-tap w-full text-left no-underline bg-g-panel rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center"
     >
       <span className="flex shrink-0">
         {topic.sources.slice(0, 3).map((s, i) => (
@@ -65,11 +66,7 @@ function TopicCard({ topic, loading, onTap }: { topic: (typeof TOPICS)[0]; loadi
           {topic.blurb}
         </span>
       </span>
-      {loading ? (
-        <span className="text-g-prim shrink-0 animate-spin">
-          <Loader2 size={18} />
-        </span>
-      ) : topic.ready ? (
+      {topic.ready ? (
         <span className="text-g-faint shrink-0">
           <ChevronRight size={16} />
         </span>
@@ -78,7 +75,7 @@ function TopicCard({ topic, loading, onTap }: { topic: (typeof TOPICS)[0]; loadi
           Soon
         </span>
       )}
-    </button>
+    </Link>
   );
 }
 
@@ -94,75 +91,15 @@ function timeAgo(date: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-interface ConvoRow {
-  id: string;
-  title: string | null;
-  topic_id: string;
-  updated_at: string;
-}
-
-interface BabyRow {
-  name: string;
-  born: boolean;
-  dob: string | null;
-  due_date: string | null;
-}
-
 export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const [navigating, setNavigating] = useState<string | null>(null);
-  const [me, setMe] = useState("");
-  const [baby, setBaby] = useState<BabyRow | null>(null);
-  const [convos, setConvos] = useState<ConvoRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { me, baby, convos, loaded } = useUser();
   const topics = TOPICS;
 
-  useEffect(() => {
-    const load = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("display_name, family_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
-
-        const { data: babies } = await supabase
-          .from("baby_profiles")
-          .select("name, born, dob, due_date")
-          .eq("family_id", profile.family_id)
-          .limit(1);
-
-        if (babies && babies.length > 0) {
-          setBaby(babies[0]);
-        }
-
-        const { data: conversations } = await supabase
-          .from("conversations")
-          .select("id, title, topic_id, updated_at")
-          .eq("family_id", profile.family_id)
-          .order("updated_at", { ascending: false })
-          .limit(10);
-
-        if (conversations) {
-          setConvos(conversations);
-        }
-      }
-      setLoaded(true);
-    };
-    load();
-  }, []);
-
-  const babyAge = baby?.born && baby.dob ? formatBabyAge(baby.dob) : null;
   const sub = baby
     ? baby.born
-      ? `${baby.name} is ${babyAge} old. What\u2019s on your mind?`
+      ? `${baby.name} is ${baby.age} old. What\u2019s on your mind?`
       : `${baby.name} is on the way. What\u2019s on your mind?`
     : "What\u2019s on your mind?";
 
@@ -217,15 +154,7 @@ export default function HomePage() {
         <div className="mb-7">
           <div className="flex flex-col gap-[10px]">
             {(expanded ? topics : topics.slice(0, 4)).map((t) => (
-              <TopicCard
-                key={t.id}
-                topic={t}
-                loading={navigating === t.id}
-                onTap={() => {
-                  setNavigating(t.id);
-                  router.push(`/topic/${t.id}`);
-                }}
-              />
+              <TopicCard key={t.id} topic={t} />
             ))}
           </div>
           {topics.length > 4 && (
@@ -251,13 +180,14 @@ export default function HomePage() {
             <Kicker className="mb-[14px]">Lately</Kicker>
             <div className="flex flex-col gap-[11px]">
               {convos.map((c) => (
-                <button
+                <Link
                   key={c.id}
-                  onClick={() => { setNavigating(c.id); router.push(`/chat/${c.id}`); }}
-                  className={`g-up g-tap text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center ${navigating === c.id ? "opacity-70" : ""}`}
+                  href={`/chat/${c.id}`}
+                  prefetch
+                  className="g-up g-tap no-underline bg-g-panel rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
                 >
                   <span className="w-9 h-9 rounded-[12px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
-                    {navigating === c.id ? <Loader2 size={18} className="animate-spin" /> : <MessageSquare size={18} />}
+                    <MessageSquare size={18} />
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-body text-[15px] font-semibold text-g-ink leading-[1.3]">
@@ -267,7 +197,7 @@ export default function HomePage() {
                       {topicName(c.topic_id)} · {timeAgo(c.updated_at)}
                     </span>
                   </span>
-                </button>
+                </Link>
               ))}
             </div>
           </>

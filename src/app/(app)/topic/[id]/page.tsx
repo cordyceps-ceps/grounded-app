@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Plus, Pin, Pencil, Trash2, ChevronRight, Clock, Play } from "lucide-react";
+import { Sun, Moon, Plus, ChevronRight, Clock, Play } from "lucide-react";
 import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
+import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
-import { createClient } from "@/lib/supabase/client";
-import { formatBabyAge } from "@/lib/utils";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -36,76 +36,19 @@ function timeAgo(date: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-interface BabyData {
-  name: string;
-  born: boolean;
-  dob: string | null;
-  due_date: string | null;
-  birth_weight: string | null;
-}
-
-interface ConvoRow {
-  id: string;
-  title: string | null;
-  updated_at: string;
-}
-
 export default function TopicPage() {
   const router = useRouter();
   const params = useParams();
   const topic = getTopicById(params.id as string);
-  const [editFact, setEditFact] = useState<{ id: string; text: string } | null>(null);
+  const { baby, convos: allConvos } = useUser();
   const [newFact, setNewFact] = useState(false);
   const [factText, setFactText] = useState("");
-  const [baby, setBaby] = useState<BabyData | null>(null);
-  const [convos, setConvos] = useState<ConvoRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("family_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        const { data: babies } = await supabase
-          .from("baby_profiles")
-          .select("name, born, dob, due_date, birth_weight")
-          .eq("family_id", profile.family_id)
-          .limit(1);
-
-        if (babies && babies.length > 0) {
-          setBaby(babies[0]);
-        }
-
-        if (topic?.ready) {
-          const { data: conversations } = await supabase
-            .from("conversations")
-            .select("id, title, updated_at")
-            .eq("family_id", profile.family_id)
-            .eq("topic_id", params.id)
-            .order("updated_at", { ascending: false })
-            .limit(20);
-
-          if (conversations) {
-            setConvos(conversations);
-          }
-        }
-      }
-      setLoaded(true);
-    };
-    load();
-  }, [params.id, topic?.ready]);
 
   if (!topic) return null;
 
-  const babyAge = baby?.born && baby.dob ? formatBabyAge(baby.dob) : null;
+  const convos = topic.ready ? allConvos.filter((c) => c.topic_id === topic.id) : [];
+
+  const babyAge = baby?.age;
   const babyDobFormatted = baby?.dob
     ? new Date(baby.dob).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : null;
@@ -195,15 +138,7 @@ export default function TopicPage() {
         {topic.ready ? (
           <>
             <Kicker className="mb-3">Conversations here</Kicker>
-            {!loaded ? (
-              <div className="flex justify-center py-4">
-                <span className="flex gap-[3px]">
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
-                  ))}
-                </span>
-              </div>
-            ) : convos.length === 0 ? (
+            {convos.length === 0 ? (
               <div className="bg-g-panel2 rounded-[16px] py-[18px] px-4 text-center">
                 <div className="font-body text-[14px] text-g-sub leading-[1.5]">
                   No questions yet. Tap <strong className="text-g-ink">Ask something new</strong> below to start.
@@ -212,10 +147,11 @@ export default function TopicPage() {
             ) : (
               <div className="flex flex-col gap-[10px]">
                 {convos.map((c) => (
-                  <button
+                  <Link
                     key={c.id}
-                    onClick={() => router.push(`/chat/${c.id}`)}
-                    className="w-full text-left cursor-pointer bg-g-panel border-none rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center g-tap"
+                    href={`/chat/${c.id}`}
+                    prefetch
+                    className="w-full no-underline bg-g-panel rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center g-tap"
                   >
                     <span className="min-w-0">
                       <span className="block font-body text-[14.5px] font-semibold text-g-ink leading-[1.3]">
@@ -224,7 +160,7 @@ export default function TopicPage() {
                       <span className="block font-body text-[12px] text-g-faint mt-[3px]">{timeAgo(c.updated_at)}</span>
                     </span>
                     <span className="text-g-faint shrink-0"><ChevronRight size={16} /></span>
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}
@@ -259,18 +195,18 @@ export default function TopicPage() {
 
       {/* New fact sheet (placeholder for future) */}
       <Sheet
-        open={!!editFact || newFact}
-        onClose={() => { setEditFact(null); setNewFact(false); setFactText(""); }}
-        title={editFact ? "Edit fact" : "Add a fact"}
+        open={newFact}
+        onClose={() => { setNewFact(false); setFactText(""); }}
+        title="Add a fact"
       >
         <Field
           label={`What\u2019s true for ${baby?.name || "your baby"} right now?`}
-          value={editFact ? editFact.text : factText}
-          onChange={(e) => editFact ? setEditFact({ ...editFact, text: e.target.value }) : setFactText(e.target.value)}
+          value={factText}
+          onChange={(e) => setFactText(e.target.value)}
           placeholder="e.g. Currently cluster feeding in the evenings"
         />
         <div className="mt-4">
-          <Button full onClick={() => { setEditFact(null); setNewFact(false); setFactText(""); }}>
+          <Button full onClick={() => { setNewFact(false); setFactText(""); }}>
             Save
           </Button>
         </div>

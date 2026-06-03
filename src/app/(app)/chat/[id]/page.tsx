@@ -6,7 +6,8 @@ import { Sun, Moon, Leaf, Mic, ArrowUp, Book, Copy, Pin, Phone, Play } from "luc
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
-import { formatBabyAge } from "@/lib/utils";
+import { useUser } from "@/components/UserProvider";
+import { getTopicById } from "@/lib/topics";
 
 interface AnswerBlock {
   type: "lead" | "h" | "p" | "ol" | "video" | "callout";
@@ -159,79 +160,49 @@ export default function ChatPage() {
   const [done, setDone] = useState(false);
   const [sources, setSources] = useState<string[]>([]);
   const [topicId, setTopicId] = useState("bf");
-  const [topicName, setTopicName] = useState("Breastfeeding");
-  const [baby, setBaby] = useState<BabyContext | null>(null);
-  const [me, setMe] = useState("");
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
-  const [familyId, setFamilyId] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  // Load user context and existing conversation
+  const { me, familyId, baby: userBaby, loaded: userLoaded, refreshConvos } = useUser();
+  const baby: BabyContext | null = userBaby
+    ? { name: userBaby.name, born: userBaby.born, age: userBaby.age || "" }
+    : null;
+
+  // Load existing conversation only
   useEffect(() => {
+    if (isNew || !params.id) return;
     const load = async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("display_name, family_id")
-        .eq("id", user.id)
+      const { data: convo } = await supabase
+        .from("conversations")
+        .select("id, topic_id")
+        .eq("id", params.id)
         .single();
 
-      if (profile) {
-        setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
-        setFamilyId(profile.family_id);
+      if (convo) {
+        setTopicId(convo.topic_id);
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("role, content")
+          .eq("conversation_id", convo.id)
+          .order("created_at", { ascending: true });
 
-        const { data: babies } = await supabase
-          .from("baby_profiles")
-          .select("name, born, dob, due_date")
-          .eq("family_id", profile.family_id)
-          .limit(1);
-
-        if (babies && babies.length > 0) {
-          const b = babies[0];
-          setBaby({
-            name: b.name,
-            born: b.born,
-            age: b.born && b.dob ? formatBabyAge(b.dob) : "",
-          });
-        }
-      }
-
-      // Load existing conversation
-      if (!isNew && params.id) {
-        const { data: convo } = await supabase
-          .from("conversations")
-          .select("id, topic_id")
-          .eq("id", params.id)
-          .single();
-
-        if (convo) {
-          setTopicId(convo.topic_id);
-          const { data: msgs } = await supabase
-            .from("messages")
-            .select("role, content")
-            .eq("conversation_id", convo.id)
-            .order("created_at", { ascending: true });
-
-          if (msgs && msgs.length > 0) {
-            setMessages(msgs as Message[]);
-            // Parse the last assistant message for display
-            const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
-            if (lastAssistant) {
-              setBlocks(parseAnswer(lastAssistant.content));
-              setSources(extractSources(lastAssistant.content));
-              setDone(true);
-            }
+        if (msgs && msgs.length > 0) {
+          setMessages(msgs as Message[]);
+          const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
+          if (lastAssistant) {
+            setBlocks(parseAnswer(lastAssistant.content));
+            setSources(extractSources(lastAssistant.content));
+            setDone(true);
           }
         }
       }
-
-      setLoaded(true);
+      setConvoLoaded(true);
     };
     load();
   }, [isNew, params.id]);
+
+  const loaded = userLoaded && convoLoaded;
 
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
@@ -347,6 +318,7 @@ export default function ChatPage() {
         setBlocks(parseAnswer(fullText));
         setSources(extractSources(fullText));
         setDone(true);
+        refreshConvos();
       } catch {
         setLeadText("Something went wrong. Please try again.");
         setDone(true);
@@ -381,7 +353,7 @@ export default function ChatPage() {
     <div className="min-h-[100dvh] bg-g-bg flex flex-col">
       <TopBar
         onBack={() => router.push(hasAsked ? `/topic/${topicId}` : "/home")}
-        title={hasAsked ? topicName : undefined}
+        title={hasAsked ? (getTopicById(topicId)?.name || "Breastfeeding") : undefined}
         right={<DarkToggle />}
       />
 
