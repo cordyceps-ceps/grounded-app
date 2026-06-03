@@ -6,6 +6,7 @@ import { formatBabyAge } from "@/lib/utils";
 
 interface Baby {
   name: string;
+  gender: string | null;
   born: boolean;
   dob: string | null;
   due_date: string | null;
@@ -140,7 +141,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const [babiesRes] = await Promise.all([
           supabase
             .from("baby_profiles")
-            .select("name, born, dob, due_date, birth_weight")
+            .select("name, gender, born, dob, due_date, birth_weight")
             .eq("family_id", profile.family_id)
             .limit(1),
           loadConvos(profile.family_id),

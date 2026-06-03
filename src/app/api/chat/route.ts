@@ -10,12 +10,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-function buildSystemPrompt(baby?: { name: string; age: string; born: boolean }, facts?: string[]) {
+function buildSystemPrompt(baby?: { name: string; gender?: string; age: string; born: boolean }, facts?: string[]) {
   let babyContext = "";
   if (baby) {
-    babyContext = baby.born
-      ? `\n\nThe parent is asking about ${baby.name}, who is ${baby.age} old. Tailor your answer to this age.`
-      : `\n\nThe parent is expecting a baby (${baby.name}). Tailor your answer for the prenatal stage.`;
+    const pronouns = baby.gender === "girl" ? "she/her" : baby.gender === "boy" ? "he/him" : "they/them";
+    if (baby.born) {
+      babyContext = `\n\nThe parent is asking about ${baby.name}, who is ${baby.age} old. Use ${pronouns} pronouns for ${baby.name}. Tailor your answer to this age.`;
+    } else {
+      babyContext = `\n\nThe parent is expecting a baby (${baby.name}). Use ${pronouns} pronouns for ${baby.name}. Tailor your answer for the prenatal stage.`;
+    }
   }
 
   let factsContext = "";

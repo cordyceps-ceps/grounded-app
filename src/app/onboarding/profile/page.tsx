@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [status, setStatus] = useState("born");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [weight, setWeight] = useState("");
@@ -54,6 +55,7 @@ export default function ProfilePage() {
         .insert({
           family_id: familyId,
           name: name || "Baby",
+          gender: gender || null,
           born: status === "born",
           dob: status === "born" && dob ? dob : null,
           due_date: status === "expecting" && dueDate ? dueDate : null,
@@ -105,6 +107,18 @@ export default function ProfilePage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Baby"
           />
+          <div>
+            <div className="font-body text-[13px] font-semibold text-g-sub mb-[7px]">Gender</div>
+            <Segmented
+              value={gender}
+              onChange={setGender}
+              options={[
+                { value: "girl", label: "Girl" },
+                { value: "boy", label: "Boy" },
+                { value: "", label: "Skip" },
+              ]}
+            />
+          </div>
           {status === "born" ? (
             <>
               <Field

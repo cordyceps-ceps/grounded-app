@@ -29,6 +29,7 @@ interface Message {
 
 interface BabyContext {
   name: string;
+  gender: string | null;
   age: string;
   born: boolean;
 }
@@ -193,7 +194,7 @@ export default function ChatPage() {
 
   const { me, familyId, baby: userBaby, facts: allFacts, loaded: userLoaded, refreshConvos, refreshPins } = useUser();
   const baby: BabyContext | null = userBaby
-    ? { name: userBaby.name, born: userBaby.born, age: userBaby.age || "" }
+    ? { name: userBaby.name, gender: userBaby.gender, born: userBaby.born, age: userBaby.age || "" }
     : null;
 
   // Load existing conversation only
@@ -305,7 +306,7 @@ export default function ChatPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: q,
-            baby: baby ? { name: baby.name, age: baby.age, born: baby.born } : undefined,
+            baby: baby ? { name: baby.name, gender: baby.gender, age: baby.age, born: baby.born } : undefined,
             facts: topicFacts.length > 0 ? topicFacts : undefined,
             history,
           }),
