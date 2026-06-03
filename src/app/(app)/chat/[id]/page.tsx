@@ -458,7 +458,7 @@ export default function ChatPage() {
         setStreaming(false);
       }
     },
-    [messages, convoId, familyId, topicId, baby, allFacts]
+    [messages, convoId, familyId, topicId, baby, allFacts, userId]
   );
 
   const handleSend = () => {
