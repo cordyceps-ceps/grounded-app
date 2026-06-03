@@ -33,6 +33,7 @@ interface PinnedAnswer {
   id: string;
   conversation_id: string;
   topic_id: string;
+  question: string;
   content: string;
   created_at: string;
 }
@@ -101,7 +102,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
     const { data } = await supabase
       .from("messages")
-      .select("id, conversation_id, content, created_at, conversations!inner(topic_id, family_id)")
+      .select("id, conversation_id, content, created_at, conversations!inner(topic_id, family_id, title)")
       .eq("pinned", true)
       .eq("conversations.family_id", fId)
       .order("created_at", { ascending: false });
@@ -112,6 +113,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           id: d.id as string,
           conversation_id: d.conversation_id as string,
           topic_id: convo.topic_id as string,
+          question: (convo.title as string) || "Saved answer",
           content: d.content as string,
           created_at: d.created_at as string,
         };

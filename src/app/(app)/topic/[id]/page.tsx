@@ -254,21 +254,23 @@ export default function TopicPage() {
                 >
                   <Link
                     href={`/chat/${pin.conversation_id}`}
-                    className="no-underline block"
+                    className="no-underline block g-tap"
                   >
-                    <div className="font-body text-[14px] leading-[1.5] text-g-ink line-clamp-3">
-                      {pin.content.slice(0, 200)}
-                      {pin.content.length > 200 ? "…" : ""}
+                    <div className="font-display text-[17px] leading-[1.2] text-g-ink">
+                      {pin.question}
                     </div>
-                    <div className="font-body text-[12px] text-g-faint mt-[6px]">
-                      {timeAgo(pin.created_at)} · tap to see full answer
+                    <div className="font-body text-[13px] leading-[1.4] text-g-sub mt-[5px] line-clamp-1">
+                      {pin.content.replace(/^#+\s+/gm, "").replace(/\n+/g, " ").slice(0, 120)}
+                    </div>
+                    <div className="font-body text-[11.5px] text-g-faint mt-[5px]">
+                      {timeAgo(pin.created_at)}
                     </div>
                   </Link>
                   <button
                     onClick={() => handleUnpinAnswer(pin.id)}
-                    className="flex items-center gap-[5px] font-body text-[12px] font-semibold text-g-sub bg-g-panel2 border-none rounded-[8px] py-[5px] px-[10px] cursor-pointer mt-[8px]"
+                    className="flex items-center gap-[5px] font-body text-[11.5px] font-semibold text-g-faint bg-transparent border-none rounded-[8px] py-[4px] px-0 cursor-pointer mt-[4px]"
                   >
-                    <Pin size={12} className="fill-current" />Unpin
+                    <Pin size={11} className="fill-current" />Unpin
                   </button>
                 </div>
               ))}
