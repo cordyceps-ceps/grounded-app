@@ -188,6 +188,7 @@ export default function ChatPage() {
   const [blocks, setBlocks] = useState<AnswerBlock[]>([]);
   const [done, setDone] = useState(false);
   const [sources, setSources] = useState<string[]>([]);
+  const [followUps, setFollowUps] = useState<string[]>([]);
   const [topicId, setTopicId] = useState("bf");
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
@@ -267,6 +268,7 @@ export default function ChatPage() {
       setBlocks([]);
       setDone(false);
       setSources([]);
+      setFollowUps([]);
 
       const supabase = createClient();
 
@@ -351,14 +353,18 @@ export default function ChatPage() {
           }
         }
 
-        // Save assistant message
+        // Extract follow-ups and strip them from saved content
+        const followUpQuestions = extractFollowUps(fullText);
+        const cleanText = stripFollowUps(fullText);
+
+        // Save assistant message (without follow-up markers)
         let savedMsgId: string | undefined;
         if (currentConvoId) {
           const { data: savedMsg } = await supabase.from("messages").insert({
             conversation_id: currentConvoId,
             role: "assistant",
-            content: fullText,
-            sources: extractSources(fullText),
+            content: cleanText,
+            sources: extractSources(cleanText),
           }).select("id").single();
           savedMsgId = savedMsg?.id;
 
@@ -369,9 +375,10 @@ export default function ChatPage() {
             .eq("id", currentConvoId);
         }
 
-        setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: fullText, pinned: false }]);
-        setBlocks(parseAnswer(fullText));
-        setSources(extractSources(fullText));
+        setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: cleanText, pinned: false }]);
+        setBlocks(parseAnswer(cleanText));
+        setSources(extractSources(cleanText));
+        setFollowUps(followUpQuestions);
         setDone(true);
         refreshConvos();
         refreshSuggestions(topicId);
@@ -577,6 +584,19 @@ export default function ChatPage() {
                           );
                         })()}
                       </div>
+                      {followUps.length > 0 && (
+                        <div className="flex flex-col gap-2 mt-1 mb-2">
+                          {followUps.map((q, i) => (
+                            <button
+                              key={i}
+                              onClick={() => sendQuestion(q)}
+                              className="text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -661,6 +681,9 @@ function parseAnswer(text: string): AnswerBlock[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
+    // Skip follow-up question markers
+    if (trimmed.startsWith(">>>")) continue;
+
     // Headings
     if (/^#{1,4}\s+/.test(trimmed)) {
       flushParagraph();
@@ -731,4 +754,21 @@ function extractSources(text: string): string[] {
   });
 
   return Array.from(sourceSet);
+}
+
+/** Extract follow-up questions (lines starting with >>>) */
+function extractFollowUps(text: string): string[] {
+  return text
+    .split("\n")
+    .filter((line) => line.trim().startsWith(">>>"))
+    .map((line) => line.trim().replace(/^>>>\s*/, ""));
+}
+
+/** Strip follow-up lines from content before saving/displaying */
+function stripFollowUps(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !line.trim().startsWith(">>>"))
+    .join("\n")
+    .trimEnd();
 }
