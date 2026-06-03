@@ -79,7 +79,8 @@ Return ONLY a JSON array of individual keyword strings. Example: ["latch", "posi
       }],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    let text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     return JSON.parse(text);
   } catch {
     return [];
@@ -176,7 +177,8 @@ Return ONLY a JSON array of indices. Example: [3, 0, 7, 1, 5, 2, 4, 6]`,
       }],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    let text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     const indices: number[] = JSON.parse(text);
     const reranked = indices
       .filter((i) => i >= 0 && i < chunks.length)
@@ -289,7 +291,9 @@ Return ONLY a JSON array of 2 strings.`,
         try {
           const followUpRes = await followUpPromise;
           if (followUpRes) {
-            const fuText = followUpRes.content[0].type === "text" ? followUpRes.content[0].text : "[]";
+            let fuText = followUpRes.content[0].type === "text" ? followUpRes.content[0].text : "[]";
+            // Strip markdown code fences if present
+            fuText = fuText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
             const followUps = JSON.parse(fuText);
             if (Array.isArray(followUps) && followUps.length > 0) {
               controller.enqueue(
