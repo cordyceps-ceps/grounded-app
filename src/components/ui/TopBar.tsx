@@ -13,7 +13,7 @@ interface TopBarProps {
 export function TopBar({ onBack, title, logo, right }: TopBarProps) {
   return (
     <div
-      className="flex items-center gap-3 shrink-0 bg-g-bg z-[6]"
+      className="flex items-center gap-3 shrink-0 bg-g-bg z-[6] sticky top-0"
       style={{
         paddingTop: "max(env(safe-area-inset-top, 0px), 12px)",
         paddingLeft: 20,
