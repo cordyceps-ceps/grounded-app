@@ -1,4 +1,4 @@
-const CACHE_NAME = "grounded-v5";
+const CACHE_NAME = "grounded-v6";
 const SHELL_URLS = ["/", "/home", "/manifest.json", "/icons/icon-192.png", "/icons/badge-96.png"];
 
 // Cache app shell on install
