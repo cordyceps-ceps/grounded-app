@@ -28,7 +28,7 @@ export function IconBtn({
   return (
     <button
       aria-label={label}
-      className={`flex items-center justify-center rounded-full border-none cursor-pointer shrink-0 ${styles[variant]} ${className}`}
+      className={`flex items-center justify-center rounded-full border-none cursor-pointer shrink-0 g-tap ${styles[variant]} ${className}`}
       style={{ width: size, height: size }}
       {...props}
     >
