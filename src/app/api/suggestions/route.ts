@@ -49,8 +49,9 @@ Return ONLY a JSON array of 3 strings, no other text. Example: ["question 1?", "
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text =
+    let text =
       response.content[0].type === "text" ? response.content[0].text : "[]";
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     const questions = JSON.parse(text);
 
     // Upsert into DB
