@@ -293,11 +293,10 @@ export async function POST(request: Request) {
           // Send push notification via separate function invocation (fire and forget)
           if (userId) {
             const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
-            const pushSecret = process.env.PUSH_INTERNAL_SECRET;
-            const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(request.url).origin : "http://localhost:3000";
+            const baseUrl = new URL(request.url).origin;
             fetch(`${baseUrl}/api/push/send`, {
               method: "POST",
-              headers: { "Content-Type": "application/json", "x-push-secret": pushSecret || "" },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 userId,
                 title: "Your answer is ready",
