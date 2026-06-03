@@ -116,11 +116,12 @@ export default function ProfilePage() {
                 placeholder="e.g. 2026-05-09"
               />
               <Field
-                label="Birth weight"
+                label="Birth weight (kg)"
                 icon={Leaf}
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                placeholder="e.g. 3.4 kg"
+                placeholder="e.g. 3.4"
+                inputMode="decimal"
               />
             </>
           ) : (
