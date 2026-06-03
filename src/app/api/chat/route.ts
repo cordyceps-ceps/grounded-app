@@ -31,8 +31,9 @@ function buildSystemPrompt(baby?: { name: string; gender?: string; age: string; 
 Your tone: warm, encouraging, concise. Lead with the answer. Use numbered steps for physical actions. Normalise common experiences. You are not a medical professional.
 
 IMPORTANT RULES:
-- ONLY answer from the provided source material. If the sources don't cover a question, say so plainly: "The books I have don't cover that specifically."
-- ALWAYS cite which book you're drawing from: "According to Huggins..." or "La Leche League recommends..."
+- Draw primarily from the provided source passages. Cite which book you're drawing from when possible: "According to Huggins..." or "La Leche League recommends..."
+- When the source passages directly cover the topic, base your answer on them and cite accordingly.
+- When the passages are only partially relevant, use them as a foundation and supplement with well-established breastfeeding guidance that these books are known to cover. Still cite the books where applicable.
 - For anything clinical (medications, dosages, diagnoses, concerning symptoms), deflect warmly: "This is one for your midwife or lactation consultant."
 - Keep answers scannable: bold key terms, numbered steps for physical actions, bullet points for options.
 - When something is common/normal, say so reassuringly.
@@ -48,30 +49,79 @@ You have access to these source books:
 - "Breastfeeding Made Simple" by Nancy Mohrbacher${babyContext}${factsContext}`;
 }
 
-async function searchChunks(query: string, limit = 8) {
-  const searchTerms = query
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter((w) => w.length > 2)
-    .join(" & ");
+/** Use Haiku to expand the user's question into search-friendly terms */
+async function expandQuery(question: string): Promise<string[]> {
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 150,
+      messages: [{
+        role: "user",
+        content: `You help search a breastfeeding book index. Given this parent's question, output 3 short keyword search phrases that would match relevant book passages. Use clinical/book terminology, not conversational language.
 
+Question: "${question}"
+
+Return ONLY a JSON array of 3 strings. Example: ["latch technique deep attachment", "breast refusal crying fussy", "milk supply low output"]`,
+      }],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    return JSON.parse(text);
+  } catch {
+    return [];
+  }
+}
+
+interface ChunkResult {
+  id: number;
+  content: string;
+  book_title: string;
+  book_author: string;
+}
+
+async function searchChunks(query: string, limit = 6): Promise<ChunkResult[]> {
+  // Use websearch_to_tsquery directly — it handles natural language
   const { data, error } = await supabase.rpc("search_chunks", {
-    search_query: searchTerms,
+    search_query: query,
     match_limit: limit,
   });
 
   if (error) {
-    console.error("RPC search failed, using fallback:", error.message);
-    const words = query.split(/\s+/).filter((w) => w.length > 3).slice(0, 3);
+    // Fallback to ILIKE with key terms
+    const words = query.split(/\s+/).filter((w) => w.length > 3).slice(0, 4);
+    if (words.length === 0) return [];
     const { data: fallbackData } = await supabase
       .from("document_chunks")
-      .select("content, book_title, book_author")
+      .select("id, content, book_title, book_author")
       .or(words.map((w) => `content.ilike.%${w}%`).join(","))
       .limit(limit);
-    return fallbackData || [];
+    return (fallbackData as ChunkResult[]) || [];
   }
 
-  return data || [];
+  return (data as ChunkResult[]) || [];
+}
+
+/** Run multiple searches and merge results, deduplicating by chunk ID */
+async function multiSearch(question: string, expandedQueries: string[]): Promise<ChunkResult[]> {
+  const searches = [
+    searchChunks(question, 6),
+    ...expandedQueries.map((q) => searchChunks(q, 4)),
+  ];
+
+  const results = await Promise.all(searches);
+  const seen = new Set<number>();
+  const merged: ChunkResult[] = [];
+
+  for (const batch of results) {
+    for (const chunk of batch) {
+      if (!seen.has(chunk.id)) {
+        seen.add(chunk.id);
+        merged.push(chunk);
+      }
+    }
+  }
+
+  return merged.slice(0, 12);
 }
 
 export async function POST(request: Request) {
@@ -85,13 +135,38 @@ export async function POST(request: Request) {
     });
   }
 
-  const chunks = await searchChunks(message);
+  // Expand query via Haiku + search in parallel
+  const [expandedQueries, directChunks] = await Promise.all([
+    expandQuery(message),
+    searchChunks(message, 6),
+  ]);
+
+  // Run expanded searches and merge with direct results
+  let chunks: ChunkResult[];
+  if (expandedQueries.length > 0) {
+    const expandedResults = await Promise.all(
+      expandedQueries.map((q) => searchChunks(q, 4))
+    );
+    const seen = new Set<number>();
+    chunks = [];
+    for (const batch of [directChunks, ...expandedResults]) {
+      for (const chunk of batch) {
+        if (!seen.has(chunk.id)) {
+          seen.add(chunk.id);
+          chunks.push(chunk);
+        }
+      }
+    }
+    chunks = chunks.slice(0, 12);
+  } else {
+    chunks = directChunks;
+  }
 
   const contextBlock =
     chunks.length > 0
       ? chunks
           .map(
-            (c: { content: string; book_title: string; book_author: string }) =>
+            (c) =>
               `[Source: ${c.book_title} by ${c.book_author}]\n${c.content}`
           )
           .join("\n\n---\n\n")
