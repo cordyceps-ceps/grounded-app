@@ -17,11 +17,25 @@ export async function registerAndSubscribe(): Promise<boolean> {
     const registration = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
 
+    const expectedKey = urlBase64ToUint8Array(vapidKey);
     let subscription = await registration.pushManager.getSubscription();
+
+    // If existing subscription was created with a different VAPID key, unsubscribe
+    if (subscription) {
+      const existingKey = subscription.options?.applicationServerKey;
+      if (existingKey) {
+        const existing = new Uint8Array(existingKey);
+        if (existing.length !== expectedKey.length || existing.some((b, i) => b !== expectedKey[i])) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
+    }
+
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
+        applicationServerKey: expectedKey.buffer as ArrayBuffer,
       });
     }
 
