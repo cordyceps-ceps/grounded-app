@@ -41,7 +41,7 @@ function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
   return (
     <button
       onClick={() => router.push(`/topic/${topic.id}`)}
-      className="g-up w-full text-left cursor-pointer bg-g-panel border-none rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center"
+      className="g-up g-tap w-full text-left cursor-pointer bg-g-panel border-none rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center"
     >
       <span className="flex shrink-0">
         {topic.sources.slice(0, 3).map((s, i) => (
@@ -241,7 +241,7 @@ export default function HomePage() {
                 <button
                   key={c.id}
                   onClick={() => router.push(`/chat/${c.id}`)}
-                  className="g-up text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
+                  className="g-up g-tap text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
                 >
                   <span className="w-9 h-9 rounded-[12px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
                     <MessageSquare size={18} />

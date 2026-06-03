@@ -402,7 +402,7 @@ export default function ChatPage() {
                 <button
                   key={i}
                   onClick={() => sendQuestion(s)}
-                  className="text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] font-display text-[19px] text-g-ink leading-[1.15] shadow-[var(--g-shadow-sm)]"
+                  className="text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] font-display text-[19px] text-g-ink leading-[1.15] shadow-[var(--g-shadow-sm)] g-tap"
                 >
                   {s}
                 </button>

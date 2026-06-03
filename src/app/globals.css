@@ -130,9 +130,19 @@
   animation: g-wave 0.6s ease-in-out infinite alternate;
 }
 
+/* Tap feedback for interactive cards */
+.g-tap {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.g-tap:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .g-up { animation: none; }
   .g-dot { animation: none; opacity: 0.6; }
   .g-caret { animation: none; opacity: 1; }
   .g-wave-bar { animation: none; height: 16px; }
+  .g-tap:active { transform: none; }
 }

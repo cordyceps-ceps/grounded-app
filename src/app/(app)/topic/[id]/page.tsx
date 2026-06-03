@@ -215,7 +215,7 @@ export default function TopicPage() {
                   <button
                     key={c.id}
                     onClick={() => router.push(`/chat/${c.id}`)}
-                    className="w-full text-left cursor-pointer bg-g-panel border-none rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center"
+                    className="w-full text-left cursor-pointer bg-g-panel border-none rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center g-tap"
                   >
                     <span className="min-w-0">
                       <span className="block font-body text-[14.5px] font-semibold text-g-ink leading-[1.3]">
