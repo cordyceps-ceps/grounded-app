@@ -250,6 +250,43 @@ export default function ChatPage() {
     }
   }, [loaded, isNew, topicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Recover from interrupted streams: when tab becomes visible again,
+  // reload messages from DB if we were streaming (browser may have killed the fetch)
+  const streamingRef = useRef(false);
+  useEffect(() => { streamingRef.current = streaming; }, [streaming]);
+
+  useEffect(() => {
+    if (!convoId) return;
+
+    const handleVisibility = async () => {
+      if (document.visibilityState !== "visible") return;
+      // Only recover if we were streaming (i.e. the fetch may have been killed)
+      if (!streamingRef.current) return;
+
+      const sb = createClient();
+      const { data: msgs } = await sb
+        .from("messages")
+        .select("id, role, content, pinned")
+        .eq("conversation_id", convoId)
+        .order("created_at", { ascending: true });
+
+      if (msgs && msgs.length > 0) {
+        const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
+        if (lastAssistant && lastAssistant.content) {
+          setMessages(msgs as Message[]);
+          setBlocks(parseAnswer(lastAssistant.content));
+          setSources(extractSources(lastAssistant.content));
+          setLeadText(lastAssistant.content);
+          setDone(true);
+          setStreaming(false);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [convoId]);
+
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
     if (s) s.scrollTop = s.scrollHeight;
@@ -327,6 +364,7 @@ export default function ChatPage() {
             baby: baby ? { name: baby.name, gender: baby.gender, age: baby.age, born: baby.born } : undefined,
             facts: topicFacts.length > 0 ? topicFacts : undefined,
             history,
+            conversationId: currentConvoId,
           }),
         });
 
@@ -363,22 +401,18 @@ export default function ChatPage() {
           }
         }
 
-        // Save assistant message
+        // Assistant message is saved server-side; fetch its ID for pin/copy
         let savedMsgId: string | undefined;
         if (currentConvoId) {
-          const { data: savedMsg } = await supabase.from("messages").insert({
-            conversation_id: currentConvoId,
-            role: "assistant",
-            content: fullText,
-            sources: extractSources(fullText),
-          }).select("id").single();
+          const { data: savedMsg } = await supabase
+            .from("messages")
+            .select("id")
+            .eq("conversation_id", currentConvoId)
+            .eq("role", "assistant")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
           savedMsgId = savedMsg?.id;
-
-          // Update conversation timestamp
-          await supabase
-            .from("conversations")
-            .update({ updated_at: new Date().toISOString() })
-            .eq("id", currentConvoId);
         }
 
         setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: fullText, pinned: false }]);

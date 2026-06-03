@@ -192,7 +192,7 @@ Return ONLY a JSON array of indices. Example: [3, 0, 7, 1, 5, 2, 4, 6]`,
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { message, baby, facts, history } = body;
+  const { message, baby, facts, history, conversationId } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -258,6 +258,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        let fullText = "";
         const response = anthropic.messages.stream({
           model: "claude-sonnet-4-6",
           max_tokens: 2048,
@@ -266,12 +267,30 @@ export async function POST(request: Request) {
         });
 
         response.on("text", (text) => {
+          fullText += text;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
           );
         });
 
         await response.finalMessage();
+
+        // Save assistant message server-side so it persists even if the client disconnects
+        if (conversationId && fullText) {
+          try {
+            await supabase.from("messages").insert({
+              conversation_id: conversationId,
+              role: "assistant",
+              content: fullText,
+            });
+            await supabase
+              .from("conversations")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", conversationId);
+          } catch {
+            // Don't fail the stream if DB save fails
+          }
+        }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
