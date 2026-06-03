@@ -111,7 +111,7 @@ export default function TopicPage() {
     : null;
 
   return (
-    <div className="min-h-[100dvh] bg-g-bg flex flex-col">
+    <div className="h-[100dvh] bg-g-bg flex flex-col">
       <TopBar onBack={() => router.push("/home")} right={<DarkToggle />} />
 
       <div
