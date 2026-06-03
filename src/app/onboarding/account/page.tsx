@@ -8,31 +8,62 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AccountPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const signUpWithEmail = async () => {
+  const handleEmailAuth = async () => {
     setLoading(true);
     setError("");
     const supabase = createClient();
 
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/choose`,
-      },
-    });
+    if (mode === "signup") {
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/choose`,
+        },
+      });
 
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/onboarding/choose");
+    } else {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Check if onboarding is complete
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("onboarding_complete")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.onboarding_complete) {
+          router.push("/home");
+          return;
+        }
+      }
+
+      router.push("/onboarding/choose");
     }
-
-    router.push("/onboarding/choose");
   };
 
   const signInWithGoogle = async () => {
@@ -51,10 +82,12 @@ export default function AccountPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-[6px]">
         <div className="font-display text-[34px] leading-[1.05] text-g-ink mb-2">
-          Create your account
+          {mode === "signup" ? "Create your account" : "Welcome back"}
         </div>
         <div className="font-body text-[14.5px] text-g-sub mb-[26px] leading-[1.5]">
-          So your conversations and your baby&rsquo;s details are saved safely from the start.
+          {mode === "signup"
+            ? "So your conversations and your baby\u2019s details are saved safely from the start."
+            : "Sign in to pick up where you left off."}
         </div>
 
         {/* Google button */}
@@ -90,21 +123,31 @@ export default function AccountPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a password"
+            placeholder={mode === "signup" ? "Create a password" : "Your password"}
           />
         </div>
 
         {error && (
           <div className="mt-3 font-body text-[13px] text-red-500">{error}</div>
         )}
+
+        <button
+          type="button"
+          onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setError(""); }}
+          className="mt-4 font-body text-[13.5px] text-g-prim"
+        >
+          {mode === "signup" ? "Already have an account? Sign in" : "Don\u2019t have an account? Sign up"}
+        </button>
       </div>
 
       <div
         className="shrink-0 bg-g-bg"
         style={{ padding: "12px 24px calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
       >
-        <Button full arrow onClick={signUpWithEmail} disabled={loading || !email || !password}>
-          {loading ? "Creating\u2026" : "Create account"}
+        <Button full arrow onClick={handleEmailAuth} disabled={loading || !email || !password}>
+          {loading
+            ? (mode === "signup" ? "Creating\u2026" : "Signing in\u2026")
+            : (mode === "signup" ? "Create account" : "Sign in")}
         </Button>
       </div>
     </div>
