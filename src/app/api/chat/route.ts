@@ -292,19 +292,23 @@ export async function POST(request: Request) {
             // Don't fail the stream if DB save fails
           }
 
-          // Send push notification (non-blocking for the stream, but awaited before close)
+          // Send push notification
           if (userId) {
             try {
               const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
-              await sendPushToUser(userId, {
+              console.log("[push] Sending to user:", userId, "convo:", conversationId);
+              const results = await sendPushToUser(userId, {
                 title: "Your answer is ready",
                 body: preview,
                 url: `/chat/${conversationId}`,
                 conversationId,
               });
-            } catch {
-              // Push failure is non-critical
+              console.log("[push] Results:", JSON.stringify(results?.map(r => r.status)));
+            } catch (err) {
+              console.error("[push] Error:", err);
             }
+          } else {
+            console.log("[push] No userId provided, skipping push");
           }
         }
 
