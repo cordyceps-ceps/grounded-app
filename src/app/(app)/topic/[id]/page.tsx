@@ -111,12 +111,12 @@ export default function TopicPage() {
     : null;
 
   return (
-    <div className="min-h-[100dvh] bg-g-bg flex flex-col relative">
+    <div className="min-h-[100dvh] bg-g-bg flex flex-col">
       <TopBar onBack={() => router.push("/home")} right={<DarkToggle />} />
 
       <div
         className="flex-1 overflow-y-auto"
-        style={{ padding: `4px 20px ${topic.ready ? "calc(env(safe-area-inset-bottom, 0px) + 96px)" : "calc(env(safe-area-inset-bottom, 0px) + 24px)"}` }}
+        style={{ padding: `4px 20px calc(env(safe-area-inset-bottom, 0px) + ${topic.ready ? "16px" : "24px"})` }}
       >
         {/* Title */}
         <div className="g-up font-display text-[40px] leading-[1.02] text-g-ink mb-5">{topic.name}</div>
@@ -246,10 +246,9 @@ export default function TopicPage() {
       {/* Sticky CTA */}
       {topic.ready && (
         <div
-          className="fixed left-0 right-0 bottom-0 z-[5]"
+          className="shrink-0 bg-g-bg border-t border-g-line"
           style={{
             padding: `14px 20px calc(env(safe-area-inset-bottom, 0px) + 12px)`,
-            background: `linear-gradient(to top, var(--g-bg) 60%, transparent)`,
           }}
         >
           <Button full icon={Plus} onClick={() => router.push("/chat/new")}>
