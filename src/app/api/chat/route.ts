@@ -73,7 +73,7 @@ async function searchChunks(query: string, limit = 8) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { message, baby, facts } = body;
+  const { message, baby, facts, history } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -94,12 +94,23 @@ export async function POST(request: Request) {
           .join("\n\n---\n\n")
       : "No relevant passages found in the source books.";
 
-  const messages: Anthropic.MessageParam[] = [
-    {
-      role: "user",
-      content: `Here are relevant passages from the source books:\n\n${contextBlock}\n\n---\n\nParent's question: ${message}`,
-    },
-  ];
+  // Build conversation messages: previous turns + current question with RAG context
+  const messages: Anthropic.MessageParam[] = [];
+
+  // Add conversation history (previous user/assistant pairs)
+  if (Array.isArray(history)) {
+    for (const msg of history) {
+      if (msg.role === "user" || msg.role === "assistant") {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    }
+  }
+
+  // Add current question with RAG context
+  messages.push({
+    role: "user",
+    content: `Here are relevant passages from the source books:\n\n${contextBlock}\n\n---\n\nParent's question: ${message}`,
+  });
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

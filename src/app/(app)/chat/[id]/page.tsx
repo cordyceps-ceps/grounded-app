@@ -291,6 +291,12 @@ export default function ChatPage() {
           .filter((f) => f.topic_id === topicId)
           .map((f) => f.content);
 
+        // Send previous messages as conversation history
+        const previousMessages = newMessages.slice(0, -1);
+        const history = previousMessages.length > 0
+          ? previousMessages.map((m) => ({ role: m.role, content: m.content }))
+          : undefined;
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -298,6 +304,7 @@ export default function ChatPage() {
             message: q,
             baby: baby ? { name: baby.name, age: baby.age, born: baby.born } : undefined,
             facts: topicFacts.length > 0 ? topicFacts : undefined,
+            history,
           }),
         });
 
@@ -364,8 +371,15 @@ export default function ChatPage() {
   };
 
   const hasAsked = messages.length > 0;
-  const lastUserMsg = messages.filter((m) => m.role === "user").pop();
-  const question = lastUserMsg?.content || "";
+
+  // Split messages: previous completed pairs vs the current (latest) exchange
+  const isLastAssistantDone = messages.length > 0 && messages[messages.length - 1].role === "assistant" && done && !streaming;
+  // History = all fully completed messages (everything except the live exchange)
+  const historyMessages = isLastAssistantDone
+    ? messages // everything is done, show all as history
+    : messages.slice(0, -1).concat([]); // exclude the last user message (it's the live one)
+  // The current user question being answered (or just answered)
+  const currentQuestion = isLastAssistantDone ? null : messages.filter((m) => m.role === "user").pop()?.content || null;
 
   if (!loaded) {
     return (
@@ -413,83 +427,109 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            {/* User message */}
-            <div className="flex flex-col items-end mb-[22px]">
-              <Kicker className="mb-[6px] mr-1">{me}</Kicker>
-              <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
-                {question}
-              </div>
-            </div>
-
-            {/* Answer */}
-            <div className="g-up">
-              <div className="flex items-center gap-[9px] mb-[14px]">
-                <span className="w-7 h-7 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center">
-                  <Leaf size={15} />
-                </span>
-                <span className="font-display text-[19px] text-g-ink">Grounded</span>
-                {streaming && (
-                  <span className="flex gap-[3px] ml-[2px]">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="g-dot"
-                        style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }}
-                      />
-                    ))}
-                  </span>
-                )}
-              </div>
-
-              {/* Streamed text */}
-              {(leadText || (done && blocks.length > 0)) && (
-                <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
-                  {done && blocks.length > 0 ? (
-                    blocks.map((block, i) => (
-                      <AnswerBlockRenderer key={i} block={block} />
-                    ))
-                  ) : (
-                    <>
-                      <span dangerouslySetInnerHTML={{ __html: mdInline(leadText) }} />
-                      {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
-                    </>
-                  )}
+            {/* Previous messages (completed pairs) */}
+            {historyMessages.map((msg, i) => (
+              msg.role === "user" ? (
+                <div key={i} className="flex flex-col items-end mb-[22px]">
+                  <Kicker className="mb-[6px] mr-1">{me}</Kicker>
+                  <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
+                    {msg.content}
+                  </div>
                 </div>
-              )}
-
-              {/* Sources + actions */}
-              {done && (
-                <>
-                  {sources.length > 0 && (
+              ) : (
+                <div key={i} className="mb-[26px]">
+                  <div className="flex items-center gap-[9px] mb-[14px]">
+                    <span className="w-7 h-7 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center">
+                      <Leaf size={15} />
+                    </span>
+                    <span className="font-display text-[19px] text-g-ink">Grounded</span>
+                  </div>
+                  <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
+                    {parseAnswer(msg.content).map((block, j) => (
+                      <AnswerBlockRenderer key={j} block={block} />
+                    ))}
+                  </div>
+                  {extractSources(msg.content).length > 0 && (
                     <div className="mt-5 flex flex-wrap gap-2">
-                      {sources.map((s, i) => (
-                        <span
-                          key={i}
-                          className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]"
-                        >
-                          <Book size={13} />
-                          {s}
+                      {extractSources(msg.content).map((s, j) => (
+                        <span key={j} className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]">
+                          <Book size={13} />{s}
                         </span>
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-[9px] mt-[14px] mb-4">
-                    <button
-                      onClick={() => {
-                        const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
-                        if (lastAssistant) navigator.clipboard.writeText(lastAssistant.content);
-                      }}
-                      className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
-                    >
-                      <Copy size={14} />Copy
-                    </button>
-                    <button className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]">
-                      <Pin size={14} />Pin answer
-                    </button>
+                </div>
+              )
+            ))}
+
+            {/* Current live exchange (streaming or just finished) */}
+            {currentQuestion && (
+              <>
+                <div className="flex flex-col items-end mb-[22px]">
+                  <Kicker className="mb-[6px] mr-1">{me}</Kicker>
+                  <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
+                    {currentQuestion}
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+
+                <div className="g-up">
+                  <div className="flex items-center gap-[9px] mb-[14px]">
+                    <span className="w-7 h-7 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center">
+                      <Leaf size={15} />
+                    </span>
+                    <span className="font-display text-[19px] text-g-ink">Grounded</span>
+                    {streaming && (
+                      <span className="flex gap-[3px] ml-[2px]">
+                        {[0, 1, 2].map((i) => (
+                          <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
+                        ))}
+                      </span>
+                    )}
+                  </div>
+
+                  {(leadText || (done && blocks.length > 0)) && (
+                    <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
+                      {done && blocks.length > 0 ? (
+                        blocks.map((block, i) => <AnswerBlockRenderer key={i} block={block} />)
+                      ) : (
+                        <>
+                          <span dangerouslySetInnerHTML={{ __html: mdInline(leadText) }} />
+                          {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {done && (
+                    <>
+                      {sources.length > 0 && (
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {sources.map((s, i) => (
+                            <span key={i} className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]">
+                              <Book size={13} />{s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-[9px] mt-[14px] mb-4">
+                        <button
+                          onClick={() => {
+                            const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
+                            if (lastAssistant) navigator.clipboard.writeText(lastAssistant.content);
+                          }}
+                          className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
+                        >
+                          <Copy size={14} />Copy
+                        </button>
+                        <button className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]">
+                          <Pin size={14} />Pin answer
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
