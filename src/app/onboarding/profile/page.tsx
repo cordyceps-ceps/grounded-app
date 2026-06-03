@@ -29,12 +29,11 @@ export default function ProfilePage() {
         return;
       }
 
-      // Create a family
-      const { data: family, error: famError } = await supabase
+      // Create a family (generate ID client-side to avoid RLS read-back issue)
+      const familyId = crypto.randomUUID();
+      const { error: famError } = await supabase
         .from("families")
-        .insert({})
-        .select()
-        .single();
+        .insert({ id: familyId });
 
       if (famError) throw famError;
 
@@ -43,7 +42,7 @@ export default function ProfilePage() {
         .from("user_profiles")
         .upsert({
           id: user.id,
-          family_id: family.id,
+          family_id: familyId,
           display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Parent",
         });
 
@@ -53,7 +52,7 @@ export default function ProfilePage() {
       const { error: babyError } = await supabase
         .from("baby_profiles")
         .insert({
-          family_id: family.id,
+          family_id: familyId,
           name: name || "Baby",
           born: status === "born",
           dob: status === "born" && dob ? dob : null,
@@ -65,7 +64,8 @@ export default function ProfilePage() {
 
       router.push("/onboarding/walkthrough");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message || "Something went wrong";
+      setError(msg);
     } finally {
       setLoading(false);
     }
