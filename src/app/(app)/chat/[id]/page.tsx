@@ -251,17 +251,12 @@ export default function ChatPage() {
   }, [loaded, isNew, topicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recover from interrupted streams: when tab becomes visible again,
-  // reload messages from DB if we were streaming (browser may have killed the fetch)
-  const streamingRef = useRef(false);
-  useEffect(() => { streamingRef.current = streaming; }, [streaming]);
-
+  // check if DB has an answer we're missing (browser may have killed the fetch)
   useEffect(() => {
     if (!convoId) return;
 
     const handleVisibility = async () => {
       if (document.visibilityState !== "visible") return;
-      // Only recover if we were streaming (i.e. the fetch may have been killed)
-      if (!streamingRef.current) return;
 
       const sb = createClient();
       const { data: msgs } = await sb
@@ -270,22 +265,29 @@ export default function ChatPage() {
         .eq("conversation_id", convoId)
         .order("created_at", { ascending: true });
 
-      if (msgs && msgs.length > 0) {
-        const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
-        if (lastAssistant && lastAssistant.content) {
-          setMessages(msgs as Message[]);
-          setBlocks(parseAnswer(lastAssistant.content));
-          setSources(extractSources(lastAssistant.content));
-          setLeadText(lastAssistant.content);
-          setDone(true);
-          setStreaming(false);
-        }
+      if (!msgs || msgs.length === 0) return;
+
+      const dbLastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
+      if (!dbLastAssistant || !dbLastAssistant.content) return;
+
+      // Check if we're missing this answer locally
+      const localLastAssistant = messages.filter((m) => m.role === "assistant").pop();
+      const localMissing = !localLastAssistant || !localLastAssistant.content;
+      const dbHasMore = localLastAssistant && dbLastAssistant.content.length > localLastAssistant.content.length;
+
+      if (localMissing || dbHasMore) {
+        setMessages(msgs as Message[]);
+        setBlocks(parseAnswer(dbLastAssistant.content));
+        setSources(extractSources(dbLastAssistant.content));
+        setLeadText(dbLastAssistant.content);
+        setDone(true);
+        setStreaming(false);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [convoId]);
+  }, [convoId, messages]);
 
   const userScrolledUp = useRef(false);
 
