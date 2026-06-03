@@ -1,9 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,6 +104,31 @@ async function searchKeyword(query: string, limit = 8): Promise<ChunkResult[]> {
   return (data as ChunkResult[]) || [];
 }
 
+/** Semantic vector search using OpenAI embeddings */
+async function searchSemantic(query: string, limit = 10): Promise<ChunkResult[]> {
+  if (!openai) return [];
+
+  try {
+    const embeddingRes = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: query,
+    });
+
+    const queryEmbedding = embeddingRes.data[0].embedding;
+
+    const { data, error } = await supabase.rpc("match_chunks_semantic", {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_limit: limit,
+      similarity_threshold: 0.25,
+    });
+
+    if (error) return [];
+    return (data as ChunkResult[]) || [];
+  } catch {
+    return [];
+  }
+}
+
 /** Broad OR-based search using individual terms */
 async function searchBroad(terms: string[], limit = 15): Promise<ChunkResult[]> {
   if (terms.length === 0) return [];
@@ -169,19 +199,22 @@ export async function POST(request: Request) {
     });
   }
 
-  // Step 1: Expand query + keyword search in parallel
-  const [expandedTerms, keywordResults] = await Promise.all([
+  // Step 1: Semantic search + keyword expansion in parallel
+  const [semanticResults, expandedTerms, keywordResults] = await Promise.all([
+    searchSemantic(message, 10),
     expandQuery(message),
     searchKeyword(message, 8),
   ]);
 
-  // Step 2: Broad OR search with expanded terms
-  const broadResults = await searchBroad(expandedTerms, 15);
+  // Step 2: Broad OR search with expanded terms (only if semantic didn't find enough)
+  const broadResults = semanticResults.length >= 8
+    ? []
+    : await searchBroad(expandedTerms, 15);
 
-  // Step 3: Merge and deduplicate
+  // Step 3: Merge and deduplicate — semantic results first (highest quality)
   const seen = new Set<number>();
   const allChunks: ChunkResult[] = [];
-  for (const chunk of [...keywordResults, ...broadResults]) {
+  for (const chunk of [...semanticResults, ...keywordResults, ...broadResults]) {
     if (!seen.has(chunk.id)) {
       seen.add(chunk.id);
       allChunks.push(chunk);
