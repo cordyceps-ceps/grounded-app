@@ -31,13 +31,14 @@ function buildSystemPrompt(baby?: { name: string; gender?: string; age: string; 
 Your tone: warm, encouraging, concise. Lead with the answer. Use numbered steps for physical actions. Normalise common experiences. You are not a medical professional.
 
 IMPORTANT RULES:
-- Your knowledge MUST come from the provided source passages. Do not introduce information that isn't grounded in these passages.
+- Base your answer on the provided source passages. The passages have been selected from trusted breastfeeding books — use them confidently.
 - Cite which book you're drawing from: "According to Huggins..." or "La Leche League recommends..."
-- You may connect ideas across passages, explain concepts in your own warm words, and rephrase for clarity — but the underlying knowledge must trace back to the sources.
-- If the passages don't cover the topic, say so honestly: "The books I have don't cover this in detail, but here's who can help..." and offer the escalation resources below.
+- You may connect ideas across passages, synthesise advice from multiple sources, and explain concepts in warm, accessible language — but the knowledge itself must come from the passages.
+- Do NOT say the books don't cover a topic unless the passages are truly about something completely unrelated. The passages were selected as relevant — trust them and draw useful guidance from them.
 - For anything clinical (medications, dosages, diagnoses, concerning symptoms), deflect warmly: "This is one for your midwife or lactation consultant."
 - Keep answers scannable: bold key terms, numbered steps for physical actions, bullet points for options.
 - When something is common/normal, say so reassuringly.
+- End with a brief encouragement and mention professional support is available if needed.
 
 Escalation resources (surface these when deflecting to a professional):
 - National Breastfeeding Helpline: 0300 100 0212
@@ -50,19 +51,26 @@ You have access to these source books:
 - "Breastfeeding Made Simple" by Nancy Mohrbacher${babyContext}${factsContext}`;
 }
 
-/** Use Haiku to expand the user's question into search-friendly terms */
+/**
+ * Use Haiku to expand the user's question into individual search keywords.
+ * Returns an array of individual terms for OR-based broad search.
+ */
 async function expandQuery(question: string): Promise<string[]> {
   try {
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 150,
+      max_tokens: 200,
       messages: [{
         role: "user",
-        content: `You help search a breastfeeding book index. Given this parent's question, output 3 short keyword search phrases that would match relevant book passages. Use clinical/book terminology, not conversational language.
+        content: `You help search a breastfeeding book. Given this parent's question, output 10-15 individual search keywords that would appear in relevant book passages. Include:
+- Clinical/medical terms (e.g. "latch", "let-down", "engorgement")
+- Everyday synonyms (e.g. "fussy", "crying", "upset")
+- Related concepts the books likely cover
+- Action words (e.g. "soothe", "calm", "position", "hold")
 
 Question: "${question}"
 
-Return ONLY a JSON array of 3 strings. Example: ["latch technique deep attachment", "breast refusal crying fussy", "milk supply low output"]`,
+Return ONLY a JSON array of individual keyword strings. Example: ["latch", "positioning", "refusal", "fussy", "crying", "soothe", "calm", "skin-to-skin", "breast", "nipple"]`,
       }],
     });
 
@@ -80,49 +88,74 @@ interface ChunkResult {
   book_author: string;
 }
 
-async function searchChunks(query: string, limit = 6): Promise<ChunkResult[]> {
-  // Use websearch_to_tsquery directly — it handles natural language
+/** Original AND-based keyword search */
+async function searchKeyword(query: string, limit = 8): Promise<ChunkResult[]> {
   const { data, error } = await supabase.rpc("search_chunks", {
     search_query: query,
     match_limit: limit,
   });
 
-  if (error) {
-    // Fallback to ILIKE with key terms
-    const words = query.split(/\s+/).filter((w) => w.length > 3).slice(0, 4);
-    if (words.length === 0) return [];
-    const { data: fallbackData } = await supabase
-      .from("document_chunks")
-      .select("id, content, book_title, book_author")
-      .or(words.map((w) => `content.ilike.%${w}%`).join(","))
-      .limit(limit);
-    return (fallbackData as ChunkResult[]) || [];
-  }
-
+  if (error) return [];
   return (data as ChunkResult[]) || [];
 }
 
-/** Run multiple searches and merge results, deduplicating by chunk ID */
-async function multiSearch(question: string, expandedQueries: string[]): Promise<ChunkResult[]> {
-  const searches = [
-    searchChunks(question, 6),
-    ...expandedQueries.map((q) => searchChunks(q, 4)),
-  ];
+/** Broad OR-based search using individual terms */
+async function searchBroad(terms: string[], limit = 15): Promise<ChunkResult[]> {
+  if (terms.length === 0) return [];
 
-  const results = await Promise.all(searches);
-  const seen = new Set<number>();
-  const merged: ChunkResult[] = [];
+  // Filter to valid tsquery terms (alphanumeric, hyphens)
+  const validTerms = terms
+    .map((t) => t.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase())
+    .filter((t) => t.length > 2);
 
-  for (const batch of results) {
-    for (const chunk of batch) {
-      if (!seen.has(chunk.id)) {
-        seen.add(chunk.id);
-        merged.push(chunk);
-      }
-    }
+  if (validTerms.length === 0) return [];
+
+  const { data, error } = await supabase.rpc("search_chunks_broad", {
+    search_terms: validTerms,
+    match_limit: limit,
+  });
+
+  if (error) return [];
+  return (data as ChunkResult[]) || [];
+}
+
+/**
+ * Use Haiku to re-rank chunks by relevance to the question.
+ * Returns the indices of the most relevant chunks, ordered by relevance.
+ */
+async function rerankChunks(question: string, chunks: ChunkResult[]): Promise<ChunkResult[]> {
+  if (chunks.length <= 8) return chunks;
+
+  try {
+    const chunkSummaries = chunks.map((c, i) =>
+      `[${i}] ${c.content.slice(0, 300)}`
+    ).join("\n\n");
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 100,
+      messages: [{
+        role: "user",
+        content: `A parent asked: "${question}"
+
+Below are passage previews from breastfeeding books. Return the indices of the 8 MOST relevant passages for answering this question, ordered by relevance.
+
+${chunkSummaries}
+
+Return ONLY a JSON array of indices. Example: [3, 0, 7, 1, 5, 2, 4, 6]`,
+      }],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "[]";
+    const indices: number[] = JSON.parse(text);
+    const reranked = indices
+      .filter((i) => i >= 0 && i < chunks.length)
+      .map((i) => chunks[i]);
+
+    return reranked.length > 0 ? reranked.slice(0, 8) : chunks.slice(0, 8);
+  } catch {
+    return chunks.slice(0, 8);
   }
-
-  return merged.slice(0, 12);
 }
 
 export async function POST(request: Request) {
@@ -136,32 +169,27 @@ export async function POST(request: Request) {
     });
   }
 
-  // Expand query via Haiku + search in parallel
-  const [expandedQueries, directChunks] = await Promise.all([
+  // Step 1: Expand query + keyword search in parallel
+  const [expandedTerms, keywordResults] = await Promise.all([
     expandQuery(message),
-    searchChunks(message, 6),
+    searchKeyword(message, 8),
   ]);
 
-  // Run expanded searches and merge with direct results
-  let chunks: ChunkResult[];
-  if (expandedQueries.length > 0) {
-    const expandedResults = await Promise.all(
-      expandedQueries.map((q) => searchChunks(q, 4))
-    );
-    const seen = new Set<number>();
-    chunks = [];
-    for (const batch of [directChunks, ...expandedResults]) {
-      for (const chunk of batch) {
-        if (!seen.has(chunk.id)) {
-          seen.add(chunk.id);
-          chunks.push(chunk);
-        }
-      }
+  // Step 2: Broad OR search with expanded terms
+  const broadResults = await searchBroad(expandedTerms, 15);
+
+  // Step 3: Merge and deduplicate
+  const seen = new Set<number>();
+  const allChunks: ChunkResult[] = [];
+  for (const chunk of [...keywordResults, ...broadResults]) {
+    if (!seen.has(chunk.id)) {
+      seen.add(chunk.id);
+      allChunks.push(chunk);
     }
-    chunks = chunks.slice(0, 12);
-  } else {
-    chunks = directChunks;
   }
+
+  // Step 4: Re-rank with Haiku if we have too many candidates
+  const chunks = await rerankChunks(message, allChunks);
 
   const contextBlock =
     chunks.length > 0
