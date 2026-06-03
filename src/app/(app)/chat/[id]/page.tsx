@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Leaf, Mic, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight } from "lucide-react";
+import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -189,6 +189,10 @@ export default function ChatPage() {
   const [done, setDone] = useState(false);
   const [sources, setSources] = useState<string[]>([]);
   const [followUps, setFollowUps] = useState<string[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const [topicId, setTopicId] = useState("bf");
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
@@ -407,6 +411,76 @@ export default function ChatPage() {
 
   const handleSend = () => {
     if (input.trim()) sendQuestion(input);
+  };
+
+  const handleMicPress = async () => {
+    if (isRecording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      return;
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setInput("Couldn\u2019t access your microphone. Check your browser settings.");
+      return;
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+
+    chunksRef.current = [];
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setIsRecording(false);
+
+      const audioBlob = new Blob(chunksRef.current, {
+        type: recorder.mimeType || "audio/webm",
+      });
+
+      if (audioBlob.size < 1000) return;
+
+      setIsTranscribing(true);
+
+      try {
+        const formData = new FormData();
+        const ext = recorder.mimeType?.includes("mp4") ? "m4a" : "webm";
+        formData.append("audio", audioBlob, `recording.${ext}`);
+
+        const res = await fetch("/api/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Transcription failed");
+
+        const { text } = await res.json();
+        if (text) {
+          setInput((prev) => (prev ? prev + " " + text : text));
+          inputRef.current?.focus();
+        }
+      } catch {
+        setInput("Voice didn\u2019t come through. Try again or type instead.");
+      } finally {
+        setIsTranscribing(false);
+      }
+    };
+
+    mediaRecorderRef.current = recorder;
+    recorder.start();
+    setIsRecording(true);
   };
 
   const handlePin = async (msgId: string, currentlyPinned: boolean) => {
@@ -656,14 +730,35 @@ export default function ChatPage() {
             className="flex-1 border-none outline-none bg-transparent font-body text-[15px] text-g-ink py-[9px] min-w-0 placeholder:text-g-faint"
           />
           <button
+            onClick={handleMicPress}
+            disabled={streaming || isTranscribing}
             className="w-10 h-10 rounded-full border-none cursor-pointer flex items-center justify-center shrink-0"
             style={{
-              background: input.trim() ? "var(--g-panel2)" : "var(--g-prim-soft)",
-              color: input.trim() ? "var(--g-sub)" : "var(--g-prim)",
+              background: isRecording
+                ? "var(--g-honey)"
+                : isTranscribing
+                  ? "var(--g-panel2)"
+                  : input.trim()
+                    ? "var(--g-panel2)"
+                    : "var(--g-prim-soft)",
+              color: isRecording
+                ? "var(--g-on-prim)"
+                : isTranscribing
+                  ? "var(--g-faint)"
+                  : input.trim()
+                    ? "var(--g-sub)"
+                    : "var(--g-prim)",
+              transition: "background 0.2s, color 0.2s",
             }}
-            aria-label="Voice input"
+            aria-label={isRecording ? "Stop recording" : isTranscribing ? "Transcribing\u2026" : "Voice input"}
           >
-            <Mic size={18} />
+            {isRecording ? (
+              <Square size={16} fill="currentColor" />
+            ) : isTranscribing ? (
+              <Loader size={18} className="animate-spin" />
+            ) : (
+              <Mic size={18} />
+            )}
           </button>
           {input.trim() && (
             <button
