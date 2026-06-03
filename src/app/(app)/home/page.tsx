@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Loader2 } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { TOPICS } from "@/lib/topics";
@@ -36,12 +36,12 @@ function Avatar({ name, active }: { name: string; active?: boolean }) {
   );
 }
 
-function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
-  const router = useRouter();
+function TopicCard({ topic, loading, onTap }: { topic: (typeof TOPICS)[0]; loading?: boolean; onTap: () => void }) {
   return (
     <button
-      onClick={() => router.push(`/topic/${topic.id}`)}
-      className="g-up g-tap w-full text-left cursor-pointer bg-g-panel border-none rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center"
+      onClick={onTap}
+      disabled={loading}
+      className="g-up g-tap w-full text-left cursor-pointer bg-g-panel border-none rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center disabled:opacity-70"
     >
       <span className="flex shrink-0">
         {topic.sources.slice(0, 3).map((s, i) => (
@@ -65,7 +65,11 @@ function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
           {topic.blurb}
         </span>
       </span>
-      {topic.ready ? (
+      {loading ? (
+        <span className="text-g-prim shrink-0 animate-spin">
+          <Loader2 size={18} />
+        </span>
+      ) : topic.ready ? (
         <span className="text-g-faint shrink-0">
           <ChevronRight size={16} />
         </span>
@@ -107,6 +111,7 @@ interface BabyRow {
 export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const [navigating, setNavigating] = useState<string | null>(null);
   const [me, setMe] = useState("");
   const [baby, setBaby] = useState<BabyRow | null>(null);
   const [convos, setConvos] = useState<ConvoRow[]>([]);
@@ -212,7 +217,15 @@ export default function HomePage() {
         <div className="mb-7">
           <div className="flex flex-col gap-[10px]">
             {(expanded ? topics : topics.slice(0, 4)).map((t) => (
-              <TopicCard key={t.id} topic={t} />
+              <TopicCard
+                key={t.id}
+                topic={t}
+                loading={navigating === t.id}
+                onTap={() => {
+                  setNavigating(t.id);
+                  router.push(`/topic/${t.id}`);
+                }}
+              />
             ))}
           </div>
           {topics.length > 4 && (
@@ -240,11 +253,11 @@ export default function HomePage() {
               {convos.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => router.push(`/chat/${c.id}`)}
-                  className="g-up g-tap text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
+                  onClick={() => { setNavigating(c.id); router.push(`/chat/${c.id}`); }}
+                  className={`g-up g-tap text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center ${navigating === c.id ? "opacity-70" : ""}`}
                 >
                   <span className="w-9 h-9 rounded-[12px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
-                    <MessageSquare size={18} />
+                    {navigating === c.id ? <Loader2 size={18} className="animate-spin" /> : <MessageSquare size={18} />}
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-body text-[15px] font-semibold text-g-ink leading-[1.3]">
