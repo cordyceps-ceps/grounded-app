@@ -3,7 +3,8 @@ import { sendPushToUser } from "@/lib/pushNotify";
 export async function POST(request: Request) {
   // Internal-only endpoint — verify shared secret
   const secret = request.headers.get("x-push-secret");
-  if (secret !== process.env.VAPID_PRIVATE_KEY) {
+  const expected = process.env.PUSH_INTERNAL_SECRET;
+  if (!expected || secret !== expected) {
     return new Response("Unauthorized", { status: 401 });
   }
 

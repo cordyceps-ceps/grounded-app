@@ -293,7 +293,7 @@ export async function POST(request: Request) {
           // Send push notification via separate function invocation (fire and forget)
           if (userId) {
             const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
-            const pushSecret = process.env.VAPID_PRIVATE_KEY;
+            const pushSecret = process.env.PUSH_INTERNAL_SECRET;
             const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(request.url).origin : "http://localhost:3000";
             fetch(`${baseUrl}/api/push/send`, {
               method: "POST",
