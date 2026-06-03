@@ -46,6 +46,7 @@ interface CachedSuggestions {
 
 interface UserContextValue {
   me: string;
+  userId: string | null;
   familyId: string | null;
   baby: Baby | null;
   convos: Convo[];
@@ -61,6 +62,7 @@ interface UserContextValue {
 
 const UserContext = createContext<UserContextValue>({
   me: "",
+  userId: null,
   familyId: null,
   baby: null,
   convos: [],
@@ -80,6 +82,7 @@ export function useUser() {
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [baby, setBaby] = useState<Baby | null>(null);
   const [convos, setConvos] = useState<Convo[]>([]);
@@ -161,7 +164,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       if (profile) {
         setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
+        setUserId(user.id);
         setFamilyId(profile.family_id);
+
+        // Register push notifications (non-blocking)
+        import("@/lib/pushSubscription").then(({ registerAndSubscribe }) => {
+          registerAndSubscribe().catch(() => {});
+        });
 
         const [babiesRes] = await Promise.all([
           supabase
@@ -234,7 +243,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ me, familyId, baby, convos, facts, pins, suggestions, loaded, refreshConvos, refreshFacts, refreshPins, refreshSuggestions }}>
+    <UserContext.Provider value={{ me, userId, familyId, baby, convos, facts, pins, suggestions, loaded, refreshConvos, refreshFacts, refreshPins, refreshSuggestions }}>
       {children}
     </UserContext.Provider>
   );

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import { sendPushToUser } from "@/lib/pushNotify";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -192,7 +193,7 @@ Return ONLY a JSON array of indices. Example: [3, 0, 7, 1, 5, 2, 4, 6]`,
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { message, baby, facts, history, conversationId } = body;
+  const { message, baby, facts, history, conversationId, userId } = body;
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -289,6 +290,21 @@ export async function POST(request: Request) {
               .eq("id", conversationId);
           } catch {
             // Don't fail the stream if DB save fails
+          }
+
+          // Send push notification (non-blocking for the stream, but awaited before close)
+          if (userId) {
+            try {
+              const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
+              await sendPushToUser(userId, {
+                title: "Your answer is ready",
+                body: preview,
+                url: `/chat/${conversationId}`,
+                conversationId,
+              });
+            } catch {
+              // Push failure is non-critical
+            }
           }
         }
 

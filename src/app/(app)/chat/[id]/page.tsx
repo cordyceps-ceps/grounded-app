@@ -197,7 +197,7 @@ export default function ChatPage() {
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  const { me, familyId, baby: userBaby, facts: allFacts, suggestions, loaded: userLoaded, refreshConvos, refreshPins, refreshSuggestions } = useUser();
+  const { me, userId, familyId, baby: userBaby, facts: allFacts, suggestions, loaded: userLoaded, refreshConvos, refreshPins, refreshSuggestions } = useUser();
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, gender: userBaby.gender, born: userBaby.born, age: userBaby.age || "" }
     : null;
@@ -380,6 +380,7 @@ export default function ChatPage() {
             facts: topicFacts.length > 0 ? topicFacts : undefined,
             history,
             conversationId: currentConvoId,
+            userId,
           }),
         });
 
