@@ -769,8 +769,8 @@ export default function ChatPage() {
 
       {/* Input bar */}
       <div
-        className="shrink-0 bg-g-bg"
-        style={{ padding: `10px 18px calc(env(safe-area-inset-bottom, 0px) + 8px)` }}
+        className="shrink-0 bg-g-bg relative -mt-px"
+        style={{ padding: `11px 18px calc(env(safe-area-inset-bottom, 0px) + 8px)` }}
       >
         <div className="flex items-end gap-[9px] bg-g-panel rounded-[26px] py-[7px] pl-[18px] pr-[7px] shadow-[var(--g-shadow)]">
           <textarea
