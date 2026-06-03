@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { TopBar, Button, Field } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,6 +19,7 @@ function AccountInner() {
   const searchParams = useSearchParams();
   const initialMode = searchParams.get("mode") === "login" ? "login" : "signup";
   const [mode, setMode] = useState<"signup" | "login">(initialMode);
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,7 @@ function AccountInner() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/choose`,
+          data: { full_name: firstName.trim() },
         },
       });
 
@@ -117,8 +119,18 @@ function AccountInner() {
           <span className="flex-1 h-px bg-g-line" />
         </div>
 
-        {/* Email/password */}
+        {/* Fields */}
         <div className="flex flex-col gap-[14px]">
+          {mode === "signup" && (
+            <Field
+              label="First name"
+              icon={User}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="What should we call you?"
+              autoComplete="given-name"
+            />
+          )}
           <Field
             label="Email"
             icon={Mail}
@@ -154,7 +166,7 @@ function AccountInner() {
         className="shrink-0 bg-g-bg"
         style={{ padding: "12px 24px calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
       >
-        <Button full arrow onClick={handleEmailAuth} disabled={loading || !email || !password}>
+        <Button full arrow onClick={handleEmailAuth} disabled={loading || !email || !password || (mode === "signup" && !firstName.trim())}>
           {loading
             ? (mode === "signup" ? "Creating\u2026" : "Signing in\u2026")
             : (mode === "signup" ? "Create account" : "Sign in")}
