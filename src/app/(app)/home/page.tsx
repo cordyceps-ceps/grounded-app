@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, X, Share } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
@@ -91,6 +91,84 @@ function timeAgo(date: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
+function InstallBanner() {
+  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [showIosHint, setShowIosHint] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const promptRef = useRef<Event | null>(null);
+
+  useEffect(() => {
+    // Don't show if already installed as PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    // Don't show if dismissed before
+    if (localStorage.getItem("grounded-install-dismissed")) return;
+
+    // Android/Chrome: capture the install prompt
+    const handler = (e: Event) => {
+      e.preventDefault();
+      promptRef.current = e;
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // iOS Safari: show manual hint
+    const ua = navigator.userAgent;
+    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|Chrome/.test(ua);
+    if (isIos && isSafari) setShowIosHint(true);
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    const prompt = promptRef.current as { prompt: () => Promise<void> } | null;
+    if (prompt) {
+      await prompt.prompt();
+      setDeferredPrompt(null);
+    }
+  };
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.setItem("grounded-install-dismissed", "1");
+  };
+
+  if (dismissed) return null;
+  if (!deferredPrompt && !showIosHint) return null;
+
+  return (
+    <div className="g-up bg-g-prim-soft rounded-[16px] p-4 mb-5 flex items-center gap-3">
+      <span className="w-10 h-10 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center shrink-0">
+        <Download size={18} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="font-body text-[14px] font-semibold text-g-ink leading-[1.3]">
+          Add Grounded to your home screen
+        </div>
+        {showIosHint ? (
+          <div className="font-body text-[12.5px] text-g-sub mt-[3px] leading-[1.4] flex items-center gap-1">
+            Tap <Share size={12} className="inline text-g-prim" /> then &ldquo;Add to Home Screen&rdquo;
+          </div>
+        ) : (
+          <button
+            onClick={handleInstall}
+            className="mt-[5px] font-body text-[12.5px] font-bold text-g-prim bg-transparent border-none p-0 cursor-pointer"
+          >
+            Install now
+          </button>
+        )}
+      </div>
+      <button
+        onClick={handleDismiss}
+        className="shrink-0 bg-transparent border-none p-1 cursor-pointer text-g-faint"
+        aria-label="Dismiss"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -148,6 +226,8 @@ export default function HomePage() {
           </div>
           <div className="font-body text-[15px] text-g-sub mt-[13px] leading-[1.5]">{sub}</div>
         </div>
+
+        <InstallBanner />
 
         {/* Topics */}
         <Kicker className="mb-3">Topics</Kicker>
