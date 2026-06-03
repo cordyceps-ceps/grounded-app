@@ -287,9 +287,23 @@ export default function ChatPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [convoId]);
 
+  const userScrolledUp = useRef(false);
+
+  // Track whether the user has scrolled up during streaming
+  useEffect(() => {
+    const s = scrollRef.current;
+    if (!s) return;
+    const handleScroll = () => {
+      const nearBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
+      userScrolledUp.current = !nearBottom;
+    };
+    s.addEventListener("scroll", handleScroll, { passive: true });
+    return () => s.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
-    if (s) s.scrollTop = s.scrollHeight;
+    if (s && !userScrolledUp.current) s.scrollTop = s.scrollHeight;
   }, []);
 
   useEffect(() => {
@@ -301,6 +315,7 @@ export default function ChatPage() {
       const q = text.trim();
       if (!q || !familyId) return;
 
+      userScrolledUp.current = false; // reset so new answer auto-scrolls
       const newMessages: Message[] = [...messages, { role: "user", content: q }];
       setMessages(newMessages);
       setInput("");
