@@ -292,8 +292,11 @@ Return ONLY a JSON array of 2 strings.`,
               encoder.encode(`data: ${JSON.stringify({ followups: followUps.slice(0, 2) })}\n\n`)
             );
           }
-        } catch {
-          // Follow-ups are non-critical — skip silently
+        } catch (fuErr) {
+          // Send debug info so we can diagnose
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ debug: fuErr instanceof Error ? fuErr.message : String(fuErr) })}\n\n`)
+          );
         }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
