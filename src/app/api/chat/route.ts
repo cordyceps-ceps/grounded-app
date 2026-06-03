@@ -254,20 +254,6 @@ export async function POST(request: Request) {
     content: `Here are relevant passages from the source books:\n\n${contextBlock}\n\n---\n\nParent's question: ${message}`,
   });
 
-  // Start follow-up generation in parallel with streaming (it'll be ready by the time Sonnet finishes)
-  const followUpPromise = anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 150,
-    messages: [{
-      role: "user",
-      content: `A parent asked about breastfeeding: "${message}"
-
-Suggest 2 practical follow-up questions they might find helpful but might not think to ask. Keep them short, warm, and conversational — like something a tired parent would type at 3am.
-
-Return ONLY a JSON array of 2 strings.`,
-    }],
-  }).catch(() => null);
-
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -286,24 +272,6 @@ Return ONLY a JSON array of 2 strings.`,
         });
 
         await response.finalMessage();
-
-        // Await follow-up result (should already be done since it ran in parallel)
-        try {
-          const followUpRes = await followUpPromise;
-          if (followUpRes) {
-            let fuText = followUpRes.content[0].type === "text" ? followUpRes.content[0].text : "[]";
-            // Strip markdown code fences if present
-            fuText = fuText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-            const followUps = JSON.parse(fuText);
-            if (Array.isArray(followUps) && followUps.length > 0) {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ followups: followUps.slice(0, 2) })}\n\n`)
-              );
-            }
-          }
-        } catch {
-          // Follow-ups are non-critical
-        }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
