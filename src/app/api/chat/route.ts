@@ -290,21 +290,25 @@ export async function POST(request: Request) {
             // Don't fail the stream if DB save fails
           }
 
-          // Send push notification via separate function invocation (fire and forget)
+          // Send push notification before closing stream (must await or Vercel kills it)
           if (userId) {
-            const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
-            const baseUrl = new URL(request.url).origin;
-            fetch(`${baseUrl}/api/push/send`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId,
-                title: "Your answer is ready",
-                body: preview,
-                url: `/chat/${conversationId}`,
-                conversationId,
-              }),
-            }).catch((err) => console.error("[push] fetch error:", err));
+            try {
+              const preview = fullText.slice(0, 120) + (fullText.length > 120 ? "…" : "");
+              const baseUrl = new URL(request.url).origin;
+              await fetch(`${baseUrl}/api/push/send`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userId,
+                  title: "Your answer is ready",
+                  body: preview,
+                  url: `/chat/${conversationId}`,
+                  conversationId,
+                }),
+              });
+            } catch (err) {
+              console.error("[push] fetch error:", err);
+            }
           }
         }
 
