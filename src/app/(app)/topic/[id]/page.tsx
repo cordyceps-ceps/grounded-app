@@ -246,7 +246,7 @@ export default function TopicPage() {
       {/* Sticky CTA */}
       {topic.ready && (
         <div
-          className="absolute left-0 right-0 bottom-0 z-[5]"
+          className="fixed left-0 right-0 bottom-0 z-[5]"
           style={{
             padding: `14px 20px calc(env(safe-area-inset-bottom, 0px) + 12px)`,
             background: `linear-gradient(to top, var(--g-bg) 60%, transparent)`,
