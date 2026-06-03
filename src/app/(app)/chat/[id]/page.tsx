@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Leaf, Mic, ArrowUp, Book, Copy, Pin, Phone, Play } from "lucide-react";
+import { Sun, Moon, Leaf, Mic, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight } from "lucide-react";
 import { TopBar, Kicker, IconBtn } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -527,16 +527,20 @@ export default function ChatPage() {
                   )}
                   {/* Show follow-ups after the last assistant message */}
                   {i === historyMessages.length - 1 && msg.role === "assistant" && followUps.length > 0 && (
-                    <div className="flex flex-col gap-2 mt-1 mb-2">
-                      {followUps.map((q, j) => (
-                        <button
-                          key={j}
-                          onClick={() => sendQuestion(q)}
-                          className="text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
-                        >
-                          {q}
-                        </button>
-                      ))}
+                    <div className="mt-4 mb-2">
+                      <Kicker className="mb-[10px]">You might also ask</Kicker>
+                      <div className="flex flex-col gap-[7px]">
+                        {followUps.map((q, j) => (
+                          <button
+                            key={j}
+                            onClick={() => sendQuestion(q)}
+                            className="flex items-center gap-[10px] text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
+                          >
+                            <span className="flex-1">{q}</span>
+                            <ChevronRight size={15} className="shrink-0 opacity-50" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -612,16 +616,20 @@ export default function ChatPage() {
                         })()}
                       </div>
                       {followUps.length > 0 && (
-                        <div className="flex flex-col gap-2 mt-1 mb-2">
-                          {followUps.map((q, i) => (
-                            <button
-                              key={i}
-                              onClick={() => sendQuestion(q)}
-                              className="text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
-                            >
-                              {q}
-                            </button>
-                          ))}
+                        <div className="mt-4 mb-2">
+                          <Kicker className="mb-[10px]">You might also ask</Kicker>
+                          <div className="flex flex-col gap-[7px]">
+                            {followUps.map((q, i) => (
+                              <button
+                                key={i}
+                                onClick={() => sendQuestion(q)}
+                                className="flex items-center gap-[10px] text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
+                              >
+                                <span className="flex-1">{q}</span>
+                                <ChevronRight size={15} className="shrink-0 opacity-50" />
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </>
