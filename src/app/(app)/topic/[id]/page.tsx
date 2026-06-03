@@ -362,7 +362,7 @@ export default function TopicPage() {
         <div
           className="shrink-0 bg-g-bg border-t border-g-line"
           style={{
-            padding: `14px 20px calc(env(safe-area-inset-bottom, 0px) + 12px)`,
+            padding: `14px 20px max(calc(env(safe-area-inset-bottom, 0px) + 12px), 24px)`,
           }}
         >
           <Button full icon={Plus} onClick={() => router.push("/chat/new")}>
