@@ -36,3 +36,9 @@ next-env.d.ts
 
 # Source books (copyrighted PDFs)
 /books/
+
+# Supabase CLI local state
+/supabase/.temp/
+
+# Design handoff (reference only)
+/design_handoff_grounded/
