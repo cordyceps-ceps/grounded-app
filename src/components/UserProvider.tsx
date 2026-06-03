@@ -29,15 +29,25 @@ interface TopicFact {
   updated_at: string;
 }
 
+interface PinnedAnswer {
+  id: string;
+  conversation_id: string;
+  topic_id: string;
+  content: string;
+  created_at: string;
+}
+
 interface UserContextValue {
   me: string;
   familyId: string | null;
   baby: Baby | null;
   convos: Convo[];
   facts: TopicFact[];
+  pins: PinnedAnswer[];
   loaded: boolean;
   refreshConvos: () => Promise<void>;
   refreshFacts: () => Promise<void>;
+  refreshPins: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue>({
@@ -46,9 +56,11 @@ const UserContext = createContext<UserContextValue>({
   baby: null,
   convos: [],
   facts: [],
+  pins: [],
   loaded: false,
   refreshConvos: async () => {},
   refreshFacts: async () => {},
+  refreshPins: async () => {},
 });
 
 export function useUser() {
@@ -61,6 +73,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [baby, setBaby] = useState<Baby | null>(null);
   const [convos, setConvos] = useState<Convo[]>([]);
   const [facts, setFacts] = useState<TopicFact[]>([]);
+  const [pins, setPins] = useState<PinnedAnswer[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const loadConvos = async (fId: string) => {
@@ -82,6 +95,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .eq("family_id", fId)
       .order("created_at", { ascending: false });
     if (data) setFacts(data);
+  };
+
+  const loadPins = async (fId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("messages")
+      .select("id, conversation_id, content, created_at, conversations!inner(topic_id, family_id)")
+      .eq("pinned", true)
+      .eq("conversations.family_id", fId)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setPins(data.map((d: Record<string, unknown>) => {
+        const convo = d.conversations as Record<string, unknown>;
+        return {
+          id: d.id as string,
+          conversation_id: d.conversation_id as string,
+          topic_id: convo.topic_id as string,
+          content: d.content as string,
+          created_at: d.created_at as string,
+        };
+      }));
+    }
   };
 
   useEffect(() => {
@@ -108,6 +143,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             .limit(1),
           loadConvos(profile.family_id),
           loadFacts(profile.family_id),
+          loadPins(profile.family_id),
         ]);
 
         if (babiesRes.data && babiesRes.data.length > 0) {
@@ -131,8 +167,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (familyId) await loadFacts(familyId);
   };
 
+  const refreshPins = async () => {
+    if (familyId) await loadPins(familyId);
+  };
+
   return (
-    <UserContext.Provider value={{ me, familyId, baby, convos, facts, loaded, refreshConvos, refreshFacts }}>
+    <UserContext.Provider value={{ me, familyId, baby, convos, facts, pins, loaded, refreshConvos, refreshFacts, refreshPins }}>
       {children}
     </UserContext.Provider>
   );
