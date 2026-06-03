@@ -262,16 +262,16 @@ export default function TopicPage() {
                     <div className="font-body text-[13px] leading-[1.4] text-g-sub mt-[5px] line-clamp-1">
                       {pin.content.replace(/^#+\s+/gm, "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\n+/g, " ").trim().slice(0, 120)}
                     </div>
-                    <div className="font-body text-[11.5px] text-g-faint mt-[5px]">
-                      {timeAgo(pin.created_at)}
-                    </div>
                   </Link>
-                  <button
-                    onClick={() => handleUnpinAnswer(pin.id)}
-                    className="flex items-center gap-[5px] font-body text-[11.5px] font-semibold text-g-faint bg-transparent border-none rounded-[8px] py-[4px] px-0 cursor-pointer mt-[4px]"
-                  >
-                    <Pin size={11} className="fill-current" />Unpin
-                  </button>
+                  <div className="flex items-center justify-between mt-[6px]">
+                    <span className="font-body text-[11.5px] text-g-faint">{timeAgo(pin.created_at)}</span>
+                    <button
+                      onClick={() => handleUnpinAnswer(pin.id)}
+                      className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-faint bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      <Pin size={11} className="fill-current" />Unpin
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
