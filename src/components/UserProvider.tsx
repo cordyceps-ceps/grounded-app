@@ -39,6 +39,11 @@ interface PinnedAnswer {
   created_at: string;
 }
 
+interface CachedSuggestions {
+  questions: string[];
+  created_at: string;
+}
+
 interface UserContextValue {
   me: string;
   familyId: string | null;
@@ -46,10 +51,12 @@ interface UserContextValue {
   convos: Convo[];
   facts: TopicFact[];
   pins: PinnedAnswer[];
+  suggestions: Record<string, CachedSuggestions>;
   loaded: boolean;
   refreshConvos: () => Promise<void>;
   refreshFacts: () => Promise<void>;
   refreshPins: () => Promise<void>;
+  refreshSuggestions: (topicId: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue>({
@@ -59,10 +66,12 @@ const UserContext = createContext<UserContextValue>({
   convos: [],
   facts: [],
   pins: [],
+  suggestions: {},
   loaded: false,
   refreshConvos: async () => {},
   refreshFacts: async () => {},
   refreshPins: async () => {},
+  refreshSuggestions: async () => {},
 });
 
 export function useUser() {
@@ -76,6 +85,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [convos, setConvos] = useState<Convo[]>([]);
   const [facts, setFacts] = useState<TopicFact[]>([]);
   const [pins, setPins] = useState<PinnedAnswer[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, CachedSuggestions>>({});
   const [loaded, setLoaded] = useState(false);
 
   const loadConvos = async (fId: string) => {
@@ -122,6 +132,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loadSuggestions = async (fId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("suggested_questions")
+      .select("topic_id, questions, created_at")
+      .eq("family_id", fId);
+    if (data) {
+      const map: Record<string, CachedSuggestions> = {};
+      for (const row of data) {
+        map[row.topic_id] = { questions: row.questions, created_at: row.created_at };
+      }
+      setSuggestions(map);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
@@ -147,6 +172,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           loadConvos(profile.family_id),
           loadFacts(profile.family_id),
           loadPins(profile.family_id),
+          loadSuggestions(profile.family_id),
         ]);
 
         if (babiesRes.data && babiesRes.data.length > 0) {
@@ -174,8 +200,41 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (familyId) await loadPins(familyId);
   };
 
+  const refreshSuggestions = async (topicId: string) => {
+    if (!familyId) return;
+    const recentQuestions = convos
+      .filter((c) => c.topic_id === topicId && c.title)
+      .slice(0, 5)
+      .map((c) => c.title!);
+    const topicFacts = facts
+      .filter((f) => f.topic_id === topicId)
+      .map((f) => f.content);
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          family_id: familyId,
+          topic_id: topicId,
+          baby: baby ? { name: baby.name, gender: baby.gender, age: baby.age, born: baby.born } : undefined,
+          recent_questions: recentQuestions.length > 0 ? recentQuestions : undefined,
+          facts: topicFacts.length > 0 ? topicFacts : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.questions?.length > 0) {
+        setSuggestions((prev) => ({
+          ...prev,
+          [topicId]: { questions: data.questions, created_at: new Date().toISOString() },
+        }));
+      }
+    } catch {
+      // silent fail — suggestions are non-critical
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ me, familyId, baby, convos, facts, pins, loaded, refreshConvos, refreshFacts, refreshPins }}>
+    <UserContext.Provider value={{ me, familyId, baby, convos, facts, pins, suggestions, loaded, refreshConvos, refreshFacts, refreshPins, refreshSuggestions }}>
       {children}
     </UserContext.Provider>
   );

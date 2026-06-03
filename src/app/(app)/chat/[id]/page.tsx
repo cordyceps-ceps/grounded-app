@@ -168,9 +168,9 @@ function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
   return null;
 }
 
-const SUGGESTED = [
+const FALLBACK_SUGGESTIONS = [
   "Is cluster feeding normal in the evenings?",
-  "How do I know he\u2019s getting enough milk?",
+  "How do I know she\u2019s getting enough milk?",
   "How do I get a deeper, comfier latch?",
 ];
 
@@ -192,7 +192,7 @@ export default function ChatPage() {
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  const { me, familyId, baby: userBaby, facts: allFacts, loaded: userLoaded, refreshConvos, refreshPins } = useUser();
+  const { me, familyId, baby: userBaby, facts: allFacts, suggestions, loaded: userLoaded, refreshConvos, refreshPins, refreshSuggestions } = useUser();
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, gender: userBaby.gender, born: userBaby.born, age: userBaby.age || "" }
     : null;
@@ -232,6 +232,18 @@ export default function ChatPage() {
   }, [isNew, params.id]);
 
   const loaded = userLoaded && convoLoaded;
+
+  // Resolve suggested questions: use cached if fresh, else trigger generation
+  const cached = suggestions[topicId];
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const isCacheStale = !cached || (Date.now() - new Date(cached.created_at).getTime() > STALE_MS);
+  const suggested = cached?.questions?.length ? cached.questions : FALLBACK_SUGGESTIONS;
+
+  useEffect(() => {
+    if (loaded && isNew && isCacheStale && familyId) {
+      refreshSuggestions(topicId);
+    }
+  }, [loaded, isNew, topicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
@@ -362,6 +374,7 @@ export default function ChatPage() {
         setSources(extractSources(fullText));
         setDone(true);
         refreshConvos();
+        refreshSuggestions(topicId);
       } catch {
         setLeadText("Something went wrong. Please try again.");
         setDone(true);
@@ -432,7 +445,7 @@ export default function ChatPage() {
             </div>
             <Kicker className="mb-[13px]">Maybe start with</Kicker>
             <div className="flex flex-col gap-[10px]">
-              {SUGGESTED.map((s, i) => (
+              {suggested.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => sendQuestion(s)}
