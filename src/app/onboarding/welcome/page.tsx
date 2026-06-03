@@ -72,6 +72,12 @@ export default function WelcomePage() {
         >
           I have an invite from my partner
         </button>
+        <button
+          onClick={() => router.push("/onboarding/account?mode=login")}
+          className="w-full mt-2 bg-transparent border-none cursor-pointer font-body text-[13.5px] text-g-prim"
+        >
+          Already have an account? Sign in
+        </button>
       </div>
     </div>
   );

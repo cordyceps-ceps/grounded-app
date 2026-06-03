@@ -1,14 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock } from "lucide-react";
 import { TopBar, Button, Field } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AccountPage() {
+  return (
+    <Suspense>
+      <AccountInner />
+    </Suspense>
+  );
+}
+
+function AccountInner() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signup" | "login">("signup");
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get("mode") === "login" ? "login" : "signup";
+  const [mode, setMode] = useState<"signup" | "login">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
