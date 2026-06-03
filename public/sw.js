@@ -1,4 +1,4 @@
-const CACHE_NAME = "grounded-v3";
+const CACHE_NAME = "grounded-v4";
 const SHELL_URLS = ["/", "/home", "/manifest.json", "/icons/icon-192.png", "/icons/badge-96.png"];
 
 // Cache app shell on install
@@ -61,6 +61,7 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Grounded";
   const options = {
     body: data.body || "Your answer is ready.",
+    icon: "/icons/icon-192.png",
     badge: "/icons/badge-96.png",
     tag: data.conversationId || "grounded",
     data: { url: data.url || "/" },
