@@ -395,7 +395,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-g-bg flex flex-col">
+    <div className="h-[100dvh] bg-g-bg flex flex-col">
       <TopBar
         onBack={() => router.push(hasAsked ? `/topic/${topicId}` : "/home")}
         title={hasAsked ? (getTopicById(topicId)?.name || "Breastfeeding") : undefined}
