@@ -10,7 +10,7 @@ import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
 
 interface AnswerBlock {
-  type: "lead" | "h" | "p" | "ol" | "video" | "callout";
+  type: "lead" | "h" | "p" | "ol" | "ul" | "video" | "callout";
   text?: string;
   md?: string;
   items?: string[];
@@ -64,6 +64,15 @@ function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
     );
   }
 
+  if (block.type === "lead") {
+    return (
+      <p
+        className="g-up font-body text-[15.5px] leading-[1.6] text-g-ink"
+        dangerouslySetInnerHTML={{ __html: mdInline(block.md || "") }}
+      />
+    );
+  }
+
   if (block.type === "p") {
     return (
       <p
@@ -88,6 +97,22 @@ function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
           </li>
         ))}
       </ol>
+    );
+  }
+
+  if (block.type === "ul" && block.items) {
+    return (
+      <ul className="g-up list-none m-0 mt-[14px] p-0 flex flex-col gap-[9px]">
+        {block.items.map((item, j) => (
+          <li key={j} className="flex gap-[10px]">
+            <span className="text-g-prim shrink-0 mt-[7px] w-[6px] h-[6px] rounded-full bg-g-prim" />
+            <span
+              className="font-body text-[15px] leading-[1.5] text-g-ink"
+              dangerouslySetInnerHTML={{ __html: mdInline(item) }}
+            />
+          </li>
+        ))}
+      </ul>
     );
   }
 
@@ -513,7 +538,8 @@ function parseAnswer(text: string): AnswerBlock[] {
   const blocks: AnswerBlock[] = [];
   const lines = text.split("\n");
   let currentParagraph = "";
-  let currentList: string[] = [];
+  let currentOl: string[] = [];
+  let currentUl: string[] = [];
   let isFirst = true;
 
   const flushParagraph = () => {
@@ -527,10 +553,14 @@ function parseAnswer(text: string): AnswerBlock[] {
     }
   };
 
-  const flushList = () => {
-    if (currentList.length > 0) {
-      blocks.push({ type: "ol", items: [...currentList] });
-      currentList = [];
+  const flushLists = () => {
+    if (currentOl.length > 0) {
+      blocks.push({ type: "ol", items: [...currentOl] });
+      currentOl = [];
+    }
+    if (currentUl.length > 0) {
+      blocks.push({ type: "ul", items: [...currentUl] });
+      currentUl = [];
     }
   };
 
@@ -539,7 +569,7 @@ function parseAnswer(text: string): AnswerBlock[] {
 
     if (trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
       flushParagraph();
-      flushList();
+      flushLists();
       blocks.push({ type: "h", text: trimmed.replace(/^#+\s+/, "") });
       continue;
     }
@@ -547,28 +577,30 @@ function parseAnswer(text: string): AnswerBlock[] {
     const listMatch = trimmed.match(/^\d+\.\s+(.+)/);
     if (listMatch) {
       flushParagraph();
-      currentList.push(listMatch[1]);
+      flushLists();
+      currentOl.push(listMatch[1]);
       continue;
     }
 
     if (trimmed.startsWith("- ") || trimmed.startsWith("\u2022 ")) {
       flushParagraph();
-      currentList.push(trimmed.slice(2));
+      flushLists();
+      currentUl.push(trimmed.slice(2));
       continue;
     }
 
     if (!trimmed) {
-      flushList();
+      flushLists();
       flushParagraph();
       continue;
     }
 
-    flushList();
+    flushLists();
     if (currentParagraph) currentParagraph += " ";
     currentParagraph += trimmed;
   }
 
-  flushList();
+  flushLists();
   flushParagraph();
   return blocks;
 }
