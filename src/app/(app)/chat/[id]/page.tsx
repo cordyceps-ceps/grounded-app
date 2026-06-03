@@ -601,9 +601,12 @@ function parseAnswer(text: string): AnswerBlock[] {
     }
   };
 
+  const inList = () => currentOl.length > 0 || currentUl.length > 0;
+
   for (const line of lines) {
     const trimmed = line.trim();
 
+    // Headings
     if (/^#{1,4}\s+/.test(trimmed)) {
       flushParagraph();
       flushLists();
@@ -611,34 +614,49 @@ function parseAnswer(text: string): AnswerBlock[] {
       continue;
     }
 
+    // Horizontal rules
     if (/^-{3,}$/.test(trimmed) || /^\*{3,}$/.test(trimmed)) {
       flushParagraph();
       flushLists();
       continue;
     }
 
+    // Numbered list items
     const listMatch = trimmed.match(/^\d+\.\s+(.+)/);
     if (listMatch) {
       flushParagraph();
-      if (currentUl.length > 0) flushLists(); // flush UL if switching to OL
+      if (currentUl.length > 0) flushLists();
       currentOl.push(listMatch[1]);
       continue;
     }
 
+    // Bullet list items
     if (trimmed.startsWith("- ") || trimmed.startsWith("\u2022 ")) {
       flushParagraph();
-      if (currentOl.length > 0) flushLists(); // flush OL if switching to UL
+      if (currentOl.length > 0) flushLists();
       currentUl.push(trimmed.slice(2));
       continue;
     }
 
+    // Blank lines: skip inside lists, flush paragraphs outside
     if (!trimmed) {
-      flushLists();
-      flushParagraph();
+      if (!inList()) {
+        flushParagraph();
+      }
       continue;
     }
 
-    flushLists();
+    // Non-blank text while inside a list: append to last item (multi-line)
+    if (inList()) {
+      if (currentOl.length > 0) {
+        currentOl[currentOl.length - 1] += " " + trimmed;
+      } else {
+        currentUl[currentUl.length - 1] += " " + trimmed;
+      }
+      continue;
+    }
+
+    // Regular paragraph text
     if (currentParagraph) currentParagraph += " ";
     currentParagraph += trimmed;
   }
