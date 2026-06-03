@@ -52,7 +52,8 @@ function mdInline(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--g-prim);text-decoration:underline">$1</a>');
 }
 
 function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
@@ -488,15 +489,11 @@ export default function ChatPage() {
                   </div>
 
                   {(leadText || (done && blocks.length > 0)) && (
-                    <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
-                      {done && blocks.length > 0 ? (
-                        blocks.map((block, i) => <AnswerBlockRenderer key={i} block={block} />)
-                      ) : (
-                        <>
-                          <span dangerouslySetInnerHTML={{ __html: mdInline(leadText) }} />
-                          {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
-                        </>
-                      )}
+                    <div className="font-body text-[15px] leading-[1.6] text-g-ink">
+                      {(done ? blocks : parseAnswer(leadText)).map((block, i) => (
+                        <AnswerBlockRenderer key={i} block={block} />
+                      ))}
+                      {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
                     </div>
                   )}
 
@@ -623,14 +620,14 @@ function parseAnswer(text: string): AnswerBlock[] {
     const listMatch = trimmed.match(/^\d+\.\s+(.+)/);
     if (listMatch) {
       flushParagraph();
-      flushLists();
+      if (currentUl.length > 0) flushLists(); // flush UL if switching to OL
       currentOl.push(listMatch[1]);
       continue;
     }
 
     if (trimmed.startsWith("- ") || trimmed.startsWith("\u2022 ")) {
       flushParagraph();
-      flushLists();
+      if (currentOl.length > 0) flushLists(); // flush OL if switching to UL
       currentUl.push(trimmed.slice(2));
       continue;
     }
