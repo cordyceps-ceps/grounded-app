@@ -61,7 +61,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('grounded-theme');if(t==='night'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('night')}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('grounded-theme');if(t==='night')document.documentElement.classList.add('night')}catch(e){}})()`,
           }}
         />
       </head>

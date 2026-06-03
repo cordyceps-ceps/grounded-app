@@ -43,7 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("grounded-theme") as ThemeMode | null;
-    const initial = stored || "auto";
+    const initial = stored || "light";
     setModeState(initial);
     applyTheme(initial);
 
