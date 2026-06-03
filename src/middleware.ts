@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = [
   "/onboarding",
   "/auth",
-  "/api/chat",
+  "/api",
 ];
 
 function isPublic(pathname: string) {
