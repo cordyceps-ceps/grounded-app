@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight } from "lucide-react";
-import { TopBar, Kicker, IconBtn } from "@/components/ui";
+import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight, MessageCirclePlus, X } from "lucide-react";
+import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/components/UserProvider";
@@ -17,6 +17,8 @@ interface AnswerBlock {
   title?: string;
   channel?: string;
   dur?: string;
+  videoId?: string;
+  thumbnailUrl?: string;
   resource?: { name: string; tel: string };
 }
 
@@ -25,6 +27,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   pinned?: boolean;
+  user_id?: string;
 }
 
 interface BabyContext {
@@ -121,28 +124,38 @@ function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
   }
 
   if (block.type === "video") {
+    const ytUrl = block.videoId ? `https://www.youtube.com/watch?v=${block.videoId}` : "#";
     return (
-      <div className="g-up mt-5 rounded-[18px] overflow-hidden bg-g-panel shadow-[var(--g-shadow)]">
+      <a
+        href={ytUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="g-up mt-5 rounded-[18px] overflow-hidden bg-g-panel shadow-[var(--g-shadow)] block no-underline g-tap"
+      >
         <div
-          className="h-[110px] flex items-center justify-center"
-          style={{
-            background: `repeating-linear-gradient(135deg, var(--g-panel2), var(--g-panel2) 12px, var(--g-prim-soft) 12px, var(--g-prim-soft) 24px)`,
-          }}
+          className="h-[140px] flex items-center justify-center relative bg-g-panel2"
         >
-          <span className="w-[52px] h-[52px] rounded-full bg-g-prim text-g-on-prim flex items-center justify-center shadow-[0_5px_14px_rgba(0,0,0,0.25)]">
+          {block.thumbnailUrl ? (
+            <img
+              src={block.thumbnailUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : null}
+          <span className="w-[52px] h-[52px] rounded-full bg-g-prim text-g-on-prim flex items-center justify-center shadow-[0_5px_14px_rgba(0,0,0,0.25)] relative z-10">
             <Play size={22} />
           </span>
         </div>
         <div className="p-4">
           <Kicker color="var(--g-prim)" className="mb-[6px]">
-            Here&rsquo;s what the book says — and a video showing you
+            Here&rsquo;s a video that may help
           </Kicker>
           <div className="font-display text-[21px] text-g-ink leading-[1.05]">{block.title}</div>
           <div className="font-body text-[12.5px] text-g-faint mt-[5px]">
-            {block.channel} · {block.dur}
+            {block.channel}{block.dur ? ` · ${block.dur}` : ""}
           </div>
         </div>
-      </div>
+      </a>
     );
   }
 
@@ -197,7 +210,8 @@ export default function ChatPage() {
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
-  const { me, userId, familyId, baby: userBaby, facts: allFacts, suggestions, loaded: userLoaded, refreshConvos, refreshPins, refreshSuggestions } = useUser();
+  const { me, userId, familyId, baby: userBaby, facts: allFacts, suggestions, members, loaded: userLoaded, memberName, refreshConvos, refreshPins, refreshSuggestions } = useUser();
+  const hasPartner = members.length > 1;
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, gender: userBaby.gender, born: userBaby.born, age: userBaby.age || "" }
     : null;
@@ -217,7 +231,7 @@ export default function ChatPage() {
         setTopicId(convo.topic_id);
         const { data: msgs } = await supabase
           .from("messages")
-          .select("id, role, content, pinned")
+          .select("id, role, content, pinned, user_id")
           .eq("conversation_id", convo.id)
           .order("created_at", { ascending: true });
 
@@ -261,7 +275,7 @@ export default function ChatPage() {
       const sb = createClient();
       const { data: msgs } = await sb
         .from("messages")
-        .select("id, role, content, pinned")
+        .select("id, role, content, pinned, user_id")
         .eq("conversation_id", convoId)
         .order("created_at", { ascending: true });
 
@@ -290,22 +304,42 @@ export default function ChatPage() {
   }, [convoId, messages]);
 
   const userScrolledUp = useRef(false);
+  const isProgrammaticScroll = useRef(false);
 
   // Track whether the user has scrolled up during streaming
   useEffect(() => {
     const s = scrollRef.current;
     if (!s) return;
-    const handleScroll = () => {
-      const nearBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
-      userScrolledUp.current = !nearBottom;
+
+    // Detect user touch/pointer — immediately lock scroll position
+    const handleInteractionStart = () => {
+      if (streaming) userScrolledUp.current = true;
     };
+
+    // Only unlock when user scrolls back near the bottom themselves
+    const handleScroll = () => {
+      if (isProgrammaticScroll.current) return;
+      const nearBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
+      if (nearBottom) userScrolledUp.current = false;
+    };
+
+    s.addEventListener("touchstart", handleInteractionStart, { passive: true });
+    s.addEventListener("mousedown", handleInteractionStart);
     s.addEventListener("scroll", handleScroll, { passive: true });
-    return () => s.removeEventListener("scroll", handleScroll);
-  }, []);
+    return () => {
+      s.removeEventListener("touchstart", handleInteractionStart);
+      s.removeEventListener("mousedown", handleInteractionStart);
+      s.removeEventListener("scroll", handleScroll);
+    };
+  }, [streaming]);
 
   const scrollToBottom = useCallback(() => {
     const s = scrollRef.current;
-    if (s && !userScrolledUp.current) s.scrollTop = s.scrollHeight;
+    if (s && !userScrolledUp.current) {
+      isProgrammaticScroll.current = true;
+      s.scrollTop = s.scrollHeight;
+      requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
+    }
   }, []);
 
   useEffect(() => {
@@ -360,12 +394,16 @@ export default function ChatPage() {
           conversation_id: currentConvoId,
           role: "user",
           content: q,
+          user_id: userId || null,
         });
       }
 
       try {
         const topicFacts = allFacts
           .filter((f) => f.topic_id === topicId)
+          .map((f) => f.content);
+        const globalFacts = allFacts
+          .filter((f) => !f.topic_id)
           .map((f) => f.content);
 
         // Send previous messages as conversation history
@@ -381,9 +419,11 @@ export default function ChatPage() {
             message: q,
             baby: baby ? { name: baby.name, gender: baby.gender, age: baby.age, born: baby.born } : undefined,
             facts: topicFacts.length > 0 ? topicFacts : undefined,
+            globalFacts: globalFacts.length > 0 ? globalFacts : undefined,
             history,
             conversationId: currentConvoId,
             userId,
+            topicId,
           }),
         });
 
@@ -550,6 +590,16 @@ export default function ChatPage() {
 
   const hasAsked = messages.length > 0;
 
+  // Conversation age nudge: show after 10+ user messages
+  const userMessageCount = messages.filter((m) => m.role === "user").length;
+  const NUDGE_THRESHOLD = 10;
+  const nudgeDismissKey = convoId ? `grounded-nudge-dismissed-${convoId}` : null;
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => {
+    if (typeof window === "undefined" || !nudgeDismissKey) return false;
+    return localStorage.getItem(nudgeDismissKey) === "1";
+  });
+  const showNudge = userMessageCount >= NUDGE_THRESHOLD && !nudgeDismissed && !streaming;
+
   // Split messages: previous completed pairs vs the current (latest) exchange
   const isLastAssistantDone = messages.length > 0 && messages[messages.length - 1].role === "assistant" && done && !streaming;
   // History = all fully completed messages (everything except the live exchange)
@@ -572,11 +622,11 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-[100dvh] bg-g-bg flex flex-col">
+    <div className="fixed inset-0 bg-g-bg flex flex-col">
       <TopBar
         onBack={() => router.push(hasAsked ? `/topic/${topicId}` : "/home")}
         title={hasAsked ? (getTopicById(topicId)?.name || "Breastfeeding") : undefined}
-        right={<DarkToggle />}
+        right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>}
       />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-3">
@@ -609,7 +659,7 @@ export default function ChatPage() {
             {historyMessages.map((msg, i) => (
               msg.role === "user" ? (
                 <div key={i} className="flex flex-col items-end mb-[22px]">
-                  <Kicker className="mb-[6px] mr-1">{me}</Kicker>
+                  <Kicker className="mb-[6px] mr-1">{hasPartner && msg.user_id ? memberName(msg.user_id) || me : me}</Kicker>
                   <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
                     {msg.content}
                   </div>
@@ -768,10 +818,39 @@ export default function ChatPage() {
         )}
       </div>
 
+      {/* Conversation age nudge */}
+      {showNudge && (
+        <div className="shrink-0 px-4 pb-1 bg-g-bg">
+          <div className="flex items-center gap-3 bg-g-honey-soft rounded-[14px] py-[11px] px-[14px]">
+            <MessageCirclePlus size={18} className="text-g-honey shrink-0" />
+            <div className="flex-1 font-body text-[13.5px] leading-[1.4] text-g-ink">
+              This conversation is getting long — you&rsquo;ll get better answers if you{" "}
+              <button
+                onClick={() => router.push(`/chat/new`)}
+                className="inline font-bold text-g-prim bg-transparent border-none p-0 cursor-pointer underline underline-offset-2"
+              >
+                start a new one
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setNudgeDismissed(true);
+                if (nudgeDismissKey) localStorage.setItem(nudgeDismissKey, "1");
+              }}
+              className="w-7 h-7 rounded-full bg-transparent border-none cursor-pointer flex items-center justify-center text-g-faint shrink-0"
+              aria-label="Dismiss"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
-      <div
+      <form
+        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
         className="shrink-0 bg-g-bg relative -mt-px"
-        style={{ padding: `11px 18px calc(env(safe-area-inset-bottom, 0px) + 8px)` }}
+        style={{ padding: `11px 18px max(env(safe-area-inset-bottom, 0px) + 8px, 16px)` }}
       >
         <div className="flex items-end gap-[9px] bg-g-panel rounded-[26px] py-[7px] pl-[18px] pr-[7px] shadow-[var(--g-shadow)]">
           <textarea
@@ -795,6 +874,7 @@ export default function ChatPage() {
             style={{ maxHeight: 72 }}
           />
           <button
+            type="button"
             onClick={handleMicPress}
             disabled={streaming || isTranscribing}
             className="w-10 h-10 rounded-full border-none cursor-pointer flex items-center justify-center shrink-0"
@@ -825,17 +905,16 @@ export default function ChatPage() {
               <Mic size={18} />
             )}
           </button>
-          {input.trim() && (
-            <button
-              onClick={handleSend}
-              className="w-10 h-10 rounded-full border-none cursor-pointer bg-g-prim text-g-on-prim flex items-center justify-center shrink-0"
-              aria-label="Send"
-            >
-              <ArrowUp size={18} />
-            </button>
-          )}
+          <button
+            type="submit"
+            className="w-10 h-10 rounded-full border-none cursor-pointer bg-g-prim text-g-on-prim flex items-center justify-center shrink-0 transition-opacity"
+            style={{ opacity: input.trim() ? 1 : 0, pointerEvents: input.trim() ? "auto" : "none", position: input.trim() ? "relative" : "absolute", right: input.trim() ? undefined : 7 }}
+            aria-label="Send"
+          >
+            <ArrowUp size={18} />
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -875,6 +954,30 @@ function parseAnswer(text: string): AnswerBlock[] {
 
   for (const line of lines) {
     const trimmed = line.trim();
+
+    // Video marker: :::video{title="..." channel="..." dur="..." videoId="..." thumbnailUrl="..."}
+    const videoMatch = trimmed.match(/^:::video\{(.+)\}(?:::)?$/);
+    if (videoMatch) {
+      flushParagraph();
+      flushLists();
+      const attrs: Record<string, string> = {};
+      const attrRegex = /(\w+)="([^"]*)"/g;
+      let m;
+      while ((m = attrRegex.exec(videoMatch[1])) !== null) {
+        attrs[m[1]] = m[2];
+      }
+      if (attrs.title) {
+        blocks.push({
+          type: "video",
+          title: attrs.title,
+          channel: attrs.channel,
+          dur: attrs.dur,
+          videoId: attrs.videoId,
+          thumbnailUrl: attrs.thumbnailUrl,
+        });
+      }
+      continue;
+    }
 
     // Headings
     if (/^#{1,4}\s+/.test(trimmed)) {
