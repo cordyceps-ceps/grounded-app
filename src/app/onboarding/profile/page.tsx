@@ -64,7 +64,7 @@ export default function ProfilePage() {
 
       if (babyError) throw babyError;
 
-      router.push("/onboarding/walkthrough");
+      router.push("/onboarding/facts");
     } catch (err) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message || "Something went wrong";
       setError(msg);
@@ -158,7 +158,7 @@ export default function ProfilePage() {
           <span className="font-body text-[13px] leading-[1.5] text-g-ink">
             {status === "expecting"
               ? "Not born yet? Perfect — pre-natal questions are welcome, and you can add a birth date later."
-              : "Just the essentials. Anything topic-specific (like how feeding\u2019s going) lives as a fact you can add later."}
+              : "Just the essentials. Anything specific you\u2019d like Grounded to know lives as a fact you can add later."}
           </span>
         </div>
 

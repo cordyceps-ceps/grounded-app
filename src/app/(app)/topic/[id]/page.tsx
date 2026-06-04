@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Plus, ChevronRight, Clock, Play, Pin, Pencil, Trash2, AlertTriangle } from "lucide-react";
-import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field } from "@/components/ui";
+import { Sun, Moon, Plus, ChevronRight, ChevronDown, Clock, Play, Pin, Pencil, Trash2, AlertTriangle, Phone, Globe } from "lucide-react";
+import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
@@ -55,13 +55,18 @@ export default function TopicPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [factsExpanded, setFactsExpanded] = useState(false);
 
   if (!topic) return null;
 
   const convos = topic.ready ? allConvos.filter((c) => c.topic_id === topic.id) : [];
   const topicFacts = allFacts.filter((f) => f.topic_id === topic.id);
+  const globalFacts = allFacts.filter((f) => !f.topic_id);
+  const allVisibleFacts = [...topicFacts, ...globalFacts];
   const topicPins = allPins.filter((p) => p.topic_id === topic.id);
   const staleFacts = topicFacts.filter((f) => isStale(f.updated_at, f.pinned));
+  const COLLAPSE_THRESHOLD = 4;
+  const shouldCollapse = allVisibleFacts.length > COLLAPSE_THRESHOLD && !factsExpanded;
 
   const babyAge = baby?.age;
   const babyDobFormatted = baby?.dob
@@ -117,7 +122,7 @@ export default function TopicPage() {
     const supabase = createClient();
     await supabase
       .from("topic_facts")
-      .update({ pinned: !currentlyPinned })
+      .update({ pinned: !currentlyPinned, updated_at: new Date().toISOString() })
       .eq("id", factId);
     await refreshFacts();
   };
@@ -130,7 +135,7 @@ export default function TopicPage() {
 
   return (
     <div className="fixed inset-0 bg-g-bg flex flex-col">
-      <TopBar onBack={() => router.push("/home")} right={<DarkToggle />} />
+      <TopBar onBack={() => router.push("/home")} right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>} />
 
       <div
         className="flex-1 overflow-y-auto"
@@ -166,32 +171,67 @@ export default function TopicPage() {
               <div className="bg-g-panel2 rounded-[13px] p-[15px]">
                 {/* Stale facts banner */}
                 {staleFacts.length > 0 && (
-                  <div className="flex items-start gap-[10px] bg-g-honey-soft rounded-[11px] p-[12px] mb-3">
-                    <AlertTriangle size={16} className="text-g-honey shrink-0 mt-[2px]" />
-                    <div className="font-body text-[13px] leading-[1.45] text-g-ink">
-                      Some facts about {baby.name} might be out of date — worth a quick check?
+                  <div className="bg-g-honey-soft rounded-[11px] p-[12px] mb-3">
+                    <div className="flex items-start gap-[10px] mb-[10px]">
+                      <AlertTriangle size={16} className="text-g-honey shrink-0 mt-[2px]" />
+                      <div className="font-body text-[13px] leading-[1.45] text-g-ink">
+                        {staleFacts.length === 1 ? "This fact" : `${staleFacts.length} facts`} about {baby.name} might be out of date:
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-[6px]">
+                      {staleFacts.map((fact) => (
+                        <div key={fact.id} className="bg-white/60 dark:bg-black/10 rounded-[9px] py-[8px] px-[11px]">
+                          <div className="font-body text-[13px] leading-[1.4] text-g-ink mb-[6px]">{fact.content}</div>
+                          <div className="flex gap-[6px]">
+                            <button
+                              onClick={() => openEdit(fact)}
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                            >
+                              <Pencil size={11} />Update
+                            </button>
+                            <button
+                              onClick={() => handleDelete(fact.id)}
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                            >
+                              <Trash2 size={11} />Remove
+                            </button>
+                            <button
+                              onClick={() => handlePin(fact.id, false)}
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                            >
+                              <Pin size={11} />Still true
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* Facts list */}
-                {topicFacts.length > 0 && (
+                {/* Facts list (topic + global) */}
+                {allVisibleFacts.length > 0 && (
                   <div className="flex flex-col gap-[8px] mb-3">
-                    {topicFacts.map((fact) => {
-                      const stale = isStale(fact.updated_at, fact.pinned);
+                    {(shouldCollapse ? allVisibleFacts.slice(0, COLLAPSE_THRESHOLD) : allVisibleFacts).map((fact) => {
+                      const isGlobal = !fact.topic_id;
+                      const stale = !isGlobal && isStale(fact.updated_at, fact.pinned);
                       const expanded = expandedId === fact.id;
                       return (
                         <div key={fact.id}>
                           <button
-                            onClick={() => setExpandedId(expanded ? null : fact.id)}
-                            className={`w-full text-left cursor-pointer border-none rounded-[11px] py-[10px] px-[13px] flex items-start gap-[10px] ${
-                              stale ? "bg-g-honey-soft/50 ring-1 ring-g-honey/30" : "bg-g-bg"
+                            onClick={() => isGlobal ? router.push("/settings") : setExpandedId(expanded ? null : fact.id)}
+                            className={`w-full text-left border-none rounded-[11px] py-[10px] px-[13px] flex items-start gap-[10px] ${
+                              isGlobal ? "bg-g-prim-soft/40 cursor-pointer" : stale ? "bg-g-honey-soft/50 ring-1 ring-g-honey/30 cursor-pointer" : "bg-g-bg cursor-pointer"
                             }`}
                           >
                             <span className="flex-1 font-body text-[13.5px] leading-[1.45] text-g-ink min-w-0">
                               {fact.content}
                             </span>
-                            {fact.pinned && (
+                            {isGlobal && (
+                              <span className="flex items-center gap-[3px] font-body text-[11px] text-g-prim font-semibold shrink-0 mt-[2px]">
+                                <Globe size={10} />all topics
+                              </span>
+                            )}
+                            {!isGlobal && fact.pinned && (
                               <Pin size={13} className="text-g-prim shrink-0 mt-[3px] fill-current" />
                             )}
                             {stale && !fact.pinned && (
@@ -199,8 +239,8 @@ export default function TopicPage() {
                             )}
                           </button>
 
-                          {/* Expanded actions */}
-                          {expanded && (
+                          {/* Expanded actions (topic facts only) */}
+                          {expanded && !isGlobal && (
                             <div className="flex gap-[8px] mt-[6px] ml-[13px]">
                               <button
                                 onClick={() => openEdit(fact)}
@@ -226,12 +266,29 @@ export default function TopicPage() {
                         </div>
                       );
                     })}
+                    {shouldCollapse && (
+                      <button
+                        onClick={() => setFactsExpanded(true)}
+                        className="flex items-center justify-center gap-[5px] font-body text-[12.5px] font-semibold text-g-prim bg-transparent border-none cursor-pointer py-[6px]"
+                      >
+                        <ChevronDown size={14} />
+                        {allVisibleFacts.length - COLLAPSE_THRESHOLD} more
+                      </button>
+                    )}
+                    {factsExpanded && allVisibleFacts.length > COLLAPSE_THRESHOLD && (
+                      <button
+                        onClick={() => setFactsExpanded(false)}
+                        className="flex items-center justify-center gap-[5px] font-body text-[12.5px] font-semibold text-g-faint bg-transparent border-none cursor-pointer py-[4px]"
+                      >
+                        Show less
+                      </button>
+                    )}
                   </div>
                 )}
 
                 <div className="font-body text-[13.5px] leading-[1.5] text-g-sub mb-3">
                   {topicFacts.length === 0
-                    ? `Tell Grounded something that\u2019s true for ${baby.name} right now \u2014 like how feeding\u2019s going \u2014 and answers get more relevant.`
+                    ? `Tell Grounded something that\u2019s true for ${baby.name} right now \u2014 and answers get more relevant.`
                     : `These help Grounded give ${baby.name} more relevant answers.`}
                 </div>
                 <Button size="sm" variant="soft" icon={Plus} onClick={openAdd}>
@@ -288,29 +345,81 @@ export default function TopicPage() {
                 <span className="block font-display text-[20px] text-g-ink leading-[1.1]">{s.title}</span>
                 <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{s.author}</span>
               </span>
-              <span className="font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3">
-                Buy
-              </span>
+              {s.amazonUrl ? (
+                <a
+                  href={s.amazonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="no-underline font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0"
+                >
+                  Buy
+                </a>
+              ) : (
+                <span className="font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0">
+                  Buy
+                </span>
+              )}
             </div>
           ))}
-          {topic.video && (
-            <div className="flex gap-[15px] items-center">
-              <span className="w-[46px] h-[62px] rounded-[4px] bg-g-panel2 flex items-center justify-center text-g-prim shrink-0">
-                <Play size={20} />
-              </span>
-              <span className="flex-1">
-                <span className="block font-display text-[20px] text-g-ink leading-[1.1]">{topic.video.channel}</span>
-                <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">Video channel · latching & holds</span>
-              </span>
-              <span className="font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3">
-                Open
-              </span>
-            </div>
-          )}
+          {topic.videos && (() => {
+            // Deduplicate by channel name for display
+            const seen = new Set<string>();
+            const uniqueChannels = topic.videos.filter((v) => {
+              if (seen.has(v.channel)) return false;
+              seen.add(v.channel);
+              return true;
+            });
+            return uniqueChannels.map((v, i) => {
+              const href = v.url || (v.channelId ? `https://www.youtube.com/channel/${v.channelId}` : `https://www.youtube.com/${v.handle}`);
+              return (
+                <div key={i} className="flex gap-[15px] items-center">
+                  <span className="w-[46px] h-[62px] rounded-[4px] bg-g-panel2 flex items-center justify-center text-g-prim shrink-0">
+                    <Play size={20} />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-display text-[20px] text-g-ink leading-[1.1]">{v.channel}</span>
+                    <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{v.playlistId ? "YouTube playlist" : "YouTube channel"}</span>
+                  </span>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="no-underline font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0"
+                  >
+                    Open
+                  </a>
+                </div>
+              );
+            });
+          })()}
         </div>
         <div className="font-body text-[13px] italic text-g-sub mb-[26px] leading-[1.5]">
           {topic.note || "These are the books Grounded draws from for this guide. Consider supporting the authors."}
         </div>
+
+        {/* Helplines */}
+        {topic.helplines && topic.helplines.length > 0 && (
+          <>
+            <Kicker className="mb-[12px]">Need to talk to someone?</Kicker>
+            <div className="g-up flex flex-col gap-[10px] mb-[26px]">
+              {topic.helplines.map((h, i) => (
+                <a
+                  key={i}
+                  href={`tel:${h.tel.replace(/\s/g, "")}`}
+                  className="no-underline flex items-center gap-[13px] bg-g-panel rounded-[14px] py-[13px] px-4 shadow-[var(--g-shadow-sm)] g-tap"
+                >
+                  <span className="w-[38px] h-[38px] rounded-full bg-g-honey-soft text-g-honey flex items-center justify-center shrink-0">
+                    <Phone size={17} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-body text-[14px] font-semibold text-g-ink leading-[1.3]">{h.name}</span>
+                    <span className="block font-body text-[12.5px] text-g-faint mt-[2px]">{h.tel}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Conversations or "Being curated" */}
         {topic.ready ? (
