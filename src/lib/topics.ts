@@ -28,6 +28,7 @@ export interface Topic {
   note?: string;
   care?: boolean;
   helplines?: Helpline[];
+  promptGuidance?: string;
 }
 
 export const TOPICS: Topic[] = [
@@ -68,6 +69,26 @@ export const TOPICS: Topic[] = [
       { name: "Cry-sis (crying & sleepless babies)", tel: "08451 228 669" },
       { name: "NHS 111", tel: "111" },
     ],
+    promptGuidance: `SLEEP-SPECIFIC GUIDANCE:
+These books represent distinct sleep philosophies. You MUST keep them separate — never blend contradictory approaches in the same answer.
+
+The approaches:
+- Weissbluth: emphasises biological sleep rhythms, early bedtimes, and extinction ("cry it out") for older babies
+- Ferber: graduated extinction — progressive waiting with check-ins at increasing intervals
+- Dubief (Precious Little Sleep): moderate approach — SWAP method, gentle fading, practical middle ground
+- Karp (Happiest Baby): focuses on newborn soothing (5 S's), not sleep training per se
+
+Rules:
+1. ALWAYS tailor to the baby's age. What works at 2 weeks is wrong at 6 months:
+   - 0–3 months: soothing, safe sleep basics, realistic expectations. Sleep training is NOT appropriate.
+   - 3–4 months: sleep regression context, start building habits, no formal training yet
+   - 4–6 months: sleep associations, gentle shaping becomes an option
+   - 6–12 months: structured approaches (Ferber, Weissbluth) become appropriate if parents choose
+   - 12+ months: nap transitions, toddler resistance, schedule adjustments
+2. When multiple books offer different strategies for the same problem, present them as DISTINCT OPTIONS: "One approach (from Dubief) is… A different approach (from Ferber) is…" — let the parent choose.
+3. If a parent asks about a specific method (e.g. "How does Ferber work?"), explain that approach clearly from its source without immediately countering with alternatives.
+4. Flag when something is NOT age-appropriate: "This approach is generally recommended from around 4–6 months."
+5. For safe sleep questions (back sleeping, room sharing, overheating), give clear, consistent guidance — the books agree on safety fundamentals.`,
   },
   {
     id: "weaning",

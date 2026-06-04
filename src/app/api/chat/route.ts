@@ -68,7 +68,7 @@ IMPORTANT RULES:
 - When something is common/normal, say so reassuringly.
 - End with a brief encouragement and mention professional support is available if needed.
 ${helplineBlock}
-
+${topic?.promptGuidance ? `\n${topic.promptGuidance}` : ""}
 You have access to these source books:
 ${bookList}${babyContext}${factsContext}`;
 }
