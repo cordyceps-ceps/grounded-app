@@ -1,8 +1,10 @@
 /**
- * Ingest breastfeeding books into Supabase for RAG.
+ * Ingest books into Supabase for RAG.
  * Extracts text from PDFs, chunks into ~500-word segments, stores with metadata.
  *
- * Usage: node scripts/ingest-books.mjs
+ * Usage:
+ *   node scripts/ingest-books.mjs --topic bf      # ingest breastfeeding books
+ *   node scripts/ingest-books.mjs --topic sleep    # ingest sleep books
  */
 import fs from 'fs';
 import path from 'path';
@@ -18,23 +20,57 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const BOOKS = [
-  {
-    file: 'the-womanly-art-of-breastfeeding.pdf',
-    title: 'The Womanly Art of Breastfeeding',
-    author: 'La Leche League International',
-  },
-  {
-    file: 'the-nursing-mothers-companion.pdf',
-    title: "The Nursing Mother's Companion",
-    author: 'Kathleen Huggins',
-  },
-  {
-    file: 'breastfeeding-made-simple.pdf',
-    title: 'Breastfeeding Made Simple',
-    author: 'Nancy Mohrbacher',
-  },
-];
+const BOOKS_BY_TOPIC = {
+  bf: [
+    {
+      file: 'the-womanly-art-of-breastfeeding.pdf',
+      title: 'The Womanly Art of Breastfeeding',
+      author: 'La Leche League International',
+    },
+    {
+      file: 'the-nursing-mothers-companion.pdf',
+      title: "The Nursing Mother's Companion",
+      author: 'Kathleen Huggins',
+    },
+    {
+      file: 'breastfeeding-made-simple.pdf',
+      title: 'Breastfeeding Made Simple',
+      author: 'Nancy Mohrbacher',
+    },
+  ],
+  sleep: [
+    {
+      file: 'healthy-sleep-habits-happy-child.pdf',
+      title: 'Healthy Sleep Habits, Happy Child',
+      author: 'Marc Weissbluth',
+    },
+    {
+      file: 'precious-little-sleep.pdf',
+      title: 'Precious Little Sleep',
+      author: 'Alexis Dubief',
+    },
+    {
+      file: 'solve-your-childs-sleep-problems.pdf',
+      title: "Solve Your Child's Sleep Problems",
+      author: 'Richard Ferber',
+    },
+    {
+      file: 'the-happiest-baby-on-the-block.pdf',
+      title: 'The Happiest Baby on the Block',
+      author: 'Harvey Karp',
+    },
+  ],
+};
+
+// Parse --topic arg
+const topicIdx = process.argv.indexOf('--topic');
+const TOPIC_ID = topicIdx !== -1 ? process.argv[topicIdx + 1] : 'bf';
+const BOOKS = BOOKS_BY_TOPIC[TOPIC_ID];
+
+if (!BOOKS) {
+  console.error(`Unknown topic: ${TOPIC_ID}. Available: ${Object.keys(BOOKS_BY_TOPIC).join(', ')}`);
+  process.exit(1);
+}
 
 const CHUNK_SIZE = 500; // words per chunk
 const CHUNK_OVERLAP = 50; // overlap words between chunks
@@ -90,6 +126,7 @@ async function ingestBook(book) {
     book_author: book.author,
     content,
     chunk_index: index,
+    topic_id: TOPIC_ID,
   }));
 
   const batchSize = 50;
@@ -110,19 +147,19 @@ async function ingestBook(book) {
 }
 
 async function main() {
-  console.log('Grounded — Book Ingestion');
+  console.log(`Grounded — Book Ingestion [topic: ${TOPIC_ID}]`);
   console.log('========================\n');
 
-  // Clear existing data
-  console.log('Clearing existing chunks...');
+  // Clear existing data for this topic only
+  console.log(`Clearing existing ${TOPIC_ID} chunks...`);
   const { error: deleteError } = await supabase
     .from('document_chunks')
     .delete()
-    .neq('id', 0); // delete all
+    .eq('topic_id', TOPIC_ID);
 
   if (deleteError) {
     console.error('Error clearing table:', deleteError.message);
-    console.error('Have you created the table? Run the SQL from setup-db.mjs first.');
+    console.error('Have you created the table? Run the SQL from setup-db.sql first.');
     process.exit(1);
   }
 
