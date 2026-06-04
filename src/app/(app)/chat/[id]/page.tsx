@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight, MessageCirclePlus, X } from "lucide-react";
 import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
@@ -202,6 +202,7 @@ const DEFAULT_FALLBACK = [
 export default function ChatPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const isNew = params.id === "new";
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -218,7 +219,7 @@ export default function ChatPage() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const [topicId, setTopicId] = useState("bf");
+  const [topicId, setTopicId] = useState(searchParams.get("topic") || "bf");
   const [convoId, setConvoId] = useState<string | null>(isNew ? null : (params.id as string));
   const [convoLoaded, setConvoLoaded] = useState(isNew);
 
@@ -838,7 +839,7 @@ export default function ChatPage() {
             <div className="flex-1 font-body text-[13.5px] leading-[1.4] text-g-ink">
               This conversation is getting long — you&rsquo;ll get better answers if you{" "}
               <button
-                onClick={() => router.push(`/chat/new`)}
+                onClick={() => router.push(`/chat/new?topic=${topicId}`)}
                 className="inline font-bold text-g-prim bg-transparent border-none p-0 cursor-pointer underline underline-offset-2"
               >
                 start a new one

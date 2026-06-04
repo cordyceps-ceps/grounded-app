@@ -474,7 +474,7 @@ export default function TopicPage() {
             padding: `14px 20px max(calc(env(safe-area-inset-bottom, 0px) + 12px), 24px)`,
           }}
         >
-          <Button full icon={Plus} onClick={() => router.push("/chat/new")}>
+          <Button full icon={Plus} onClick={() => router.push(`/chat/new?topic=${topic.id}`)}>
             Ask something new
           </Button>
         </div>
