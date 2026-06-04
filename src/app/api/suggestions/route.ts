@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { getTopicById } from "@/lib/topics";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -18,6 +19,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "family_id and topic_id required" }, { status: 400 });
   }
 
+  const topic = getTopicById(topic_id);
+  const topicName = topic?.name?.toLowerCase() || "parenting";
+
   const pronouns =
     baby?.gender === "girl" ? "she/her" : baby?.gender === "boy" ? "he/him" : "they/them";
 
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
       ? `\nFacts about the baby:\n${facts.map((f: string) => `- ${f}`).join("\n")}`
       : "";
 
-  const prompt = `You suggest questions a new parent might want to ask about breastfeeding.
+  const prompt = `You suggest questions a new parent might want to ask about ${topicName}.
 ${babyLine}${factsLine}${recentLine}
 
 Return exactly 3 short, warm, conversational questions. Each should feel natural — like something a parent would actually type at 3am. Tailor to the baby's age and situation.

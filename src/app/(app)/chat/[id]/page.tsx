@@ -181,10 +181,22 @@ function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
   return null;
 }
 
-const FALLBACK_SUGGESTIONS = [
-  "Is cluster feeding normal in the evenings?",
-  "How do I know she\u2019s getting enough milk?",
-  "How do I get a deeper, comfier latch?",
+const FALLBACK_SUGGESTIONS: Record<string, string[]> = {
+  bf: [
+    "Is cluster feeding normal in the evenings?",
+    "How do I know she\u2019s getting enough milk?",
+    "How do I get a deeper, comfier latch?",
+  ],
+  sleep: [
+    "How long should naps be at this age?",
+    "Is it normal for her to wake this often at night?",
+    "How do I start a gentle bedtime routine?",
+  ],
+};
+const DEFAULT_FALLBACK = [
+  "What\u2019s normal at this age?",
+  "Any tips for getting into a routine?",
+  "When should I speak to a professional?",
 ];
 
 export default function ChatPage() {
@@ -256,7 +268,7 @@ export default function ChatPage() {
   const cached = suggestions[topicId];
   const STALE_MS = 24 * 60 * 60 * 1000;
   const isCacheStale = !cached || (Date.now() - new Date(cached.created_at).getTime() > STALE_MS);
-  const suggested = cached?.questions?.length ? cached.questions : FALLBACK_SUGGESTIONS;
+  const suggested = cached?.questions?.length ? cached.questions : (FALLBACK_SUGGESTIONS[topicId] || DEFAULT_FALLBACK);
 
   useEffect(() => {
     if (loaded && isNew && isCacheStale && familyId) {
@@ -637,7 +649,7 @@ export default function ChatPage() {
               What&rsquo;s on your mind?
             </div>
             <div className="font-body text-[15px] leading-[1.55] text-g-sub mb-[26px]">
-              I&rsquo;ll answer from the three books on the shelf
+              I&rsquo;ll answer from the {getTopicById(topicId)?.sources?.length || "three"} books on the shelf
               {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.
             </div>
             <Kicker className="mb-[13px]">Maybe start with</Kicker>
