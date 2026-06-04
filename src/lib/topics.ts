@@ -53,7 +53,7 @@ export const TOPICS: Topic[] = [
   },
   {
     id: "sleep",
-    name: "Infant sleep",
+    name: "Sleep",
     blurb: "Naps, night wakings and gentle settling.",
     ready: true,
     sources: [
