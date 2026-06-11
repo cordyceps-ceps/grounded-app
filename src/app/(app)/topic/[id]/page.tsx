@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { Sun, Moon, Plus, ChevronRight, ChevronDown, Clock, Play, Pin, Pencil, Trash2, AlertTriangle, Phone, Globe } from "lucide-react";
@@ -9,6 +9,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
 import { createClient } from "@/lib/supabase/client";
+import { timeAgo } from "@/lib/format";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -25,18 +26,6 @@ function DarkToggle() {
   );
 }
 
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return `${Math.floor(days / 7)}w ago`;
-}
-
 const STALE_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
 
 function isStale(updatedAt: string, pinned: boolean): boolean {
@@ -46,9 +35,17 @@ function isStale(updatedAt: string, pinned: boolean): boolean {
 
 export default function TopicPage() {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const params = useParams();
   const topic = getTopicById(params.id as string);
   const { baby, convos: allConvos, facts: allFacts, pins: allPins, familyId, refreshFacts, refreshPins } = useUser();
+
+  // Prefetch common navigation targets
+  useEffect(() => {
+    router.prefetch("/home");
+    router.prefetch("/settings");
+    if (topic) router.prefetch(`/chat/new?topic=${topic.id}`);
+  }, [router, topic]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [factText, setFactText] = useState("");
@@ -135,7 +132,7 @@ export default function TopicPage() {
 
   return (
     <div className="fixed inset-0 bg-g-bg flex flex-col">
-      <TopBar onBack={() => router.push("/home")} right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>} />
+      <TopBar onBack={() => startTransition(() => router.push("/home"))} right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>} />
 
       <div
         className="flex-1 overflow-y-auto"
@@ -218,7 +215,7 @@ export default function TopicPage() {
                       return (
                         <div key={fact.id}>
                           <button
-                            onClick={() => isGlobal ? router.push("/settings") : setExpandedId(expanded ? null : fact.id)}
+                            onClick={() => isGlobal ? startTransition(() => router.push("/settings")) : setExpandedId(expanded ? null : fact.id)}
                             className={`w-full text-left border-none rounded-[11px] py-[10px] px-[13px] flex items-start gap-[10px] ${
                               isGlobal ? "bg-g-prim-soft/40 cursor-pointer" : stale ? "bg-g-honey-soft/50 ring-1 ring-g-honey/30 cursor-pointer" : "bg-g-bg cursor-pointer"
                             }`}
@@ -474,7 +471,7 @@ export default function TopicPage() {
             padding: `14px 20px max(calc(env(safe-area-inset-bottom, 0px) + 12px), 24px)`,
           }}
         >
-          <Button full icon={Plus} onClick={() => router.push(`/chat/new?topic=${topic.id}`)}>
+          <Button full icon={Plus} onClick={() => startTransition(() => router.push(`/chat/new?topic=${topic.id}`))}>
             Ask something new
           </Button>
         </div>

@@ -37,6 +37,16 @@ const BOOKS_BY_TOPIC = {
       title: 'Breastfeeding Made Simple',
       author: 'Nancy Mohrbacher',
     },
+    {
+      file: 'infant-milks-a-simple-guide.pdf',
+      title: 'Infant Milks: A Simple Guide',
+      author: 'First Steps Nutrition Trust',
+    },
+    {
+      file: 'breastmilk-and-breastfeeding.pdf',
+      title: 'Breastmilk and Breastfeeding',
+      author: 'First Steps Nutrition Trust',
+    },
   ],
   sleep: [
     {
@@ -58,6 +68,33 @@ const BOOKS_BY_TOPIC = {
       file: 'the-happiest-baby-on-the-block.pdf',
       title: 'The Happiest Baby on the Block',
       author: 'Harvey Karp',
+    },
+  ],
+  develop: [
+    {
+      file: 'your-baby-week-by-week.pdf',
+      title: 'Your Baby Week by Week',
+      author: 'Simone Cave & Caroline Fertleman',
+    },
+    {
+      file: 'baby-love.pdf',
+      title: 'Baby Love',
+      author: 'Robin Barker',
+    },
+    {
+      file: 'brain-rules-for-baby.pdf',
+      title: 'Brain Rules for Baby',
+      author: 'John Medina',
+    },
+    {
+      file: 'your-baby-and-child.pdf',
+      title: 'Your Baby & Child',
+      author: 'Penelope Leach',
+    },
+    {
+      file: 'how-children-develop.pdf',
+      title: 'How Children Develop',
+      author: 'Siegler, Saffran & Eisenberg',
     },
   ],
 };

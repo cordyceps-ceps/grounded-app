@@ -18,6 +18,8 @@ function AccountInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode = searchParams.get("mode") === "login" ? "login" : "signup";
+  const nextUrl = searchParams.get("next");
+  const defaultNext = "/onboarding/choose";
   const [mode, setMode] = useState<"signup" | "login">(initialMode);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,11 +33,12 @@ function AccountInner() {
     const supabase = createClient();
 
     if (mode === "signup") {
+      const redirectAfter = nextUrl || defaultNext;
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding/choose`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfter)}`,
           data: { full_name: firstName.trim() },
         },
       });
@@ -46,7 +49,7 @@ function AccountInner() {
         return;
       }
 
-      router.push("/onboarding/choose");
+      router.push(redirectAfter);
     } else {
       const { error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -74,16 +77,17 @@ function AccountInner() {
         }
       }
 
-      router.push("/onboarding/choose");
+      router.push(nextUrl || defaultNext);
     }
   };
 
   const signInWithGoogle = async () => {
     const supabase = createClient();
+    const redirectAfter = nextUrl || defaultNext;
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding/choose`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfter)}`,
       },
     });
   };

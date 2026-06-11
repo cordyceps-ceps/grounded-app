@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatBabyAge } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ interface Convo {
 
 interface TopicFact {
   id: string;
-  topic_id: string;
+  topic_id: string | null;
   content: string;
   pinned: boolean;
   created_at: string;
@@ -44,6 +45,11 @@ interface CachedSuggestions {
   created_at: string;
 }
 
+interface FamilyMember {
+  id: string;
+  display_name: string;
+}
+
 interface UserContextValue {
   me: string;
   userId: string | null;
@@ -53,7 +59,9 @@ interface UserContextValue {
   facts: TopicFact[];
   pins: PinnedAnswer[];
   suggestions: Record<string, CachedSuggestions>;
+  members: FamilyMember[];
   loaded: boolean;
+  memberName: (userId: string) => string;
   refreshConvos: () => Promise<void>;
   refreshFacts: () => Promise<void>;
   refreshPins: () => Promise<void>;
@@ -69,7 +77,9 @@ const UserContext = createContext<UserContextValue>({
   facts: [],
   pins: [],
   suggestions: {},
+  members: [],
   loaded: false,
+  memberName: () => "",
   refreshConvos: async () => {},
   refreshFacts: async () => {},
   refreshPins: async () => {},
@@ -81,6 +91,7 @@ export function useUser() {
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [me, setMe] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
@@ -89,6 +100,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [facts, setFacts] = useState<TopicFact[]>([]);
   const [pins, setPins] = useState<PinnedAnswer[]>([]);
   const [suggestions, setSuggestions] = useState<Record<string, CachedSuggestions>>({});
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const loadConvos = async (fId: string) => {
@@ -150,6 +162,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loadMembers = async (fId: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("id, display_name")
+      .eq("family_id", fId)
+      .order("created_at", { ascending: true });
+    if (data) setMembers(data as FamilyMember[]);
+  };
+
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
@@ -158,9 +180,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("display_name, family_id")
+        .select("display_name, family_id, onboarding_complete")
         .eq("id", user.id)
         .single();
+
+      if (!profile || !profile.onboarding_complete) {
+        // User exists but hasn't finished onboarding — send them back
+        router.replace("/onboarding/choose");
+        return;
+      }
 
       if (profile) {
         setMe(profile.display_name || user.email?.split("@")[0] || "Parent");
@@ -182,6 +210,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           loadFacts(profile.family_id),
           loadPins(profile.family_id),
           loadSuggestions(profile.family_id),
+          loadMembers(profile.family_id),
         ]);
 
         if (babiesRes.data && babiesRes.data.length > 0) {
@@ -242,8 +271,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const memberName = (uid: string): string => {
+    const m = members.find((m) => m.id === uid);
+    return m?.display_name || "";
+  };
+
   return (
-    <UserContext.Provider value={{ me, userId, familyId, baby, convos, facts, pins, suggestions, loaded, refreshConvos, refreshFacts, refreshPins, refreshSuggestions }}>
+    <UserContext.Provider value={{ me, userId, familyId, baby, convos, facts, pins, suggestions, members, loaded, memberName, refreshConvos, refreshFacts, refreshPins, refreshSuggestions }}>
       {children}
     </UserContext.Provider>
   );

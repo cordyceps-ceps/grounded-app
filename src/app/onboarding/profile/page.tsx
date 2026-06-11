@@ -108,7 +108,7 @@ export default function ProfilePage() {
             placeholder="Baby"
           />
           <div>
-            <div className="font-body text-[13px] font-semibold text-g-sub mb-[7px]">Gender</div>
+            <div className="font-body text-[13px] font-semibold text-g-sub mb-[7px]">Sex</div>
             <Segmented
               value={gender}
               onChange={setGender}

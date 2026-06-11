@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, X, Share } from "lucide-react";
-import { TopBar, Kicker, IconBtn } from "@/components/ui";
+import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, X, Share, BarChart3 } from "lucide-react";
+import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { TOPICS } from "@/lib/topics";
 import { getGreeting } from "@/lib/utils";
+import { timeAgo } from "@/lib/format";
 
 function DarkToggle() {
   const { isDark, setMode, mode } = useTheme();
@@ -22,18 +23,6 @@ function DarkToggle() {
         else setMode("night");
       }}
     />
-  );
-}
-
-function Avatar({ name, active }: { name: string; active?: boolean }) {
-  return (
-    <span
-      className={`flex items-center justify-center rounded-full font-body text-[13px] font-bold shrink-0 shadow-[var(--g-shadow-sm)]
-        ${active ? "bg-g-prim text-g-on-prim" : "bg-g-panel2 text-g-sub"}`}
-      style={{ width: 34, height: 34 }}
-    >
-      {name[0]}
-    </span>
   );
 }
 
@@ -77,18 +66,6 @@ function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
       )}
     </Link>
   );
-}
-
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  return `${Math.floor(days / 7)}w ago`;
 }
 
 function InstallBanner() {
@@ -172,8 +149,9 @@ function InstallBanner() {
 export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
-  const { me, baby, convos, loaded } = useUser();
+  const { me, baby, convos, loaded, familyId } = useUser();
   const topics = TOPICS;
+  const isAdmin = familyId === "9972834c-8965-45f1-8a82-8b36a0f67e5d";
 
   const sub = baby
     ? baby.born
@@ -201,14 +179,15 @@ export default function HomePage() {
         logo
         right={
           <div className="flex gap-[9px] items-center">
+            {isAdmin && (
+              <IconBtn
+                icon={BarChart3}
+                label="Admin dashboard"
+                onClick={() => router.push("/admin")}
+              />
+            )}
             <DarkToggle />
-            <button
-              onClick={() => router.push("/settings")}
-              className="border-none bg-transparent p-0 cursor-pointer"
-              aria-label="Settings"
-            >
-              <Avatar name={me || "P"} active />
-            </button>
+            <Avatar />
           </div>
         }
       />

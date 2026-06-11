@@ -1,13 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Link2, Users } from "lucide-react";
 import { TopBar, Button, Field } from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
 
 export default function JoinPage() {
+  return (
+    <Suspense>
+      <JoinInner />
+    </Suspense>
+  );
+}
+
+function JoinInner() {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const searchParams = useSearchParams();
+  const [code, setCode] = useState(searchParams.get("code") || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [authed, setAuthed] = useState(true);
+
+  useEffect(() => {
+    const check = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) setAuthed(false);
+    };
+    check();
+  }, []);
+
+  const handleJoin = async () => {
+    if (!authed) {
+      // Send them to create an account, then come back here with code pre-filled
+      const returnUrl = `/onboarding/join${code.trim() ? `?code=${encodeURIComponent(code.trim())}` : ""}`;
+      router.push(`/onboarding/account?next=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/invites/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          setAuthed(false);
+          setError("Session expired. Tap Join again to sign in first.");
+          return;
+        }
+        setError(data.error || "Something went wrong");
+        return;
+      }
+
+      // Skip profile — baby already exists from the first parent
+      router.push("/onboarding/walkthrough");
+    } catch {
+      setError("Couldn\u2019t connect. Check your internet and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] bg-g-bg flex flex-col">
@@ -22,18 +83,25 @@ export default function JoinPage() {
           Join your partner&rsquo;s space
         </div>
         <div className="font-body text-[14.5px] text-g-sub mb-6 leading-[1.5]">
-          Ask your partner to send you an invite from their{" "}
-          <em>Settings &rarr; Family</em> — by email or a shareable link.
-          Open it on this phone, or paste the code below.
+          {authed
+            ? "Paste the invite code your partner shared with you."
+            : "Enter your code below, then you\u2019ll create a quick account to join."}
         </div>
 
         <Field
           label="Invite code"
           icon={Users}
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="e.g. THEO-4821"
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            if (error) setError("");
+          }}
+          placeholder="e.g. ROBIN-4821"
         />
+
+        {error && (
+          <div className="mt-3 font-body text-[13px] text-red-500">{error}</div>
+        )}
 
         <div className="mt-4 bg-g-panel rounded-[16px] p-[15px] shadow-[var(--g-shadow-sm)]">
           <div className="font-body text-[13.5px] font-bold text-g-ink mb-1">
@@ -50,8 +118,8 @@ export default function JoinPage() {
         className="shrink-0 bg-g-bg"
         style={{ padding: "12px 24px calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
       >
-        <Button full arrow onClick={() => router.push("/home")} disabled={!code.trim()}>
-          Join family
+        <Button full arrow onClick={handleJoin} disabled={!code.trim() || loading}>
+          {loading ? "Joining\u2026" : authed ? "Join family" : "Create account & join"}
         </Button>
       </div>
     </div>

@@ -106,7 +106,7 @@ export default function ChatPage() {
             Grounded
           </h1>
         </a>
-        <p className="text-muted text-xs mt-1">Breastfeeding Guide</p>
+        <p className="text-muted text-xs mt-1">Parenting Guide</p>
       </header>
 
       {/* Messages */}
@@ -114,8 +114,8 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="text-center py-20">
             <p className="text-muted text-sm leading-relaxed max-w-xs mx-auto">
-              Ask anything about breastfeeding. Answers come from three
-              expert-vetted books — not the internet.
+              Ask anything. Answers come from expert-vetted books — not
+              the internet.
             </p>
           </div>
         )}

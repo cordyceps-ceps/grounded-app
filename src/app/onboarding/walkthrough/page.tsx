@@ -50,7 +50,7 @@ export default function WalkthroughPage() {
   return (
     <div className="min-h-[100dvh] bg-g-bg flex flex-col">
       <TopBar
-        onBack={() => router.push("/onboarding/profile")}
+        onBack={() => router.push("/onboarding/facts")}
         right={<Dots total={3} current={2} />}
       />
 

@@ -36,15 +36,15 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
   // Root redirect
   if (pathname === "/") {
     const url = request.nextUrl.clone();
-    url.pathname = user ? "/home" : "/onboarding/welcome";
+    url.pathname = session ? "/home" : "/onboarding/welcome";
     return NextResponse.redirect(url);
   }
 
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect unauthenticated users to onboarding
-  if (!user) {
+  if (!session) {
     const url = request.nextUrl.clone();
     url.pathname = "/onboarding/welcome";
     return NextResponse.redirect(url);

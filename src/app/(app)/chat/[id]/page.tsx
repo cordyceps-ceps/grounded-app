@@ -1,26 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight, MessageCirclePlus, X } from "lucide-react";
 import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/components/UserProvider";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { getTopicById } from "@/lib/topics";
-
-interface AnswerBlock {
-  type: "lead" | "h" | "p" | "ol" | "ul" | "video" | "callout";
-  text?: string;
-  md?: string;
-  items?: string[];
-  title?: string;
-  channel?: string;
-  dur?: string;
-  videoId?: string;
-  thumbnailUrl?: string;
-  resource?: { name: string; tel: string };
-}
+import { parseAnswer, extractSources, mdInline, type AnswerBlock } from "@/lib/parseAnswer";
 
 interface Message {
   id?: string;
@@ -50,16 +39,6 @@ function DarkToggle() {
       }}
     />
   );
-}
-
-function mdInline(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--g-prim);text-decoration:underline">$1</a>');
 }
 
 function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
@@ -201,15 +180,16 @@ const DEFAULT_FALLBACK = [
 
 export default function ChatPage() {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const params = useParams();
   const searchParams = useSearchParams();
   const isNew = params.id === "new";
-  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const { scrollRef, scrollToBottom, resetScroll } = useAutoScroll(streaming);
   const [leadText, setLeadText] = useState("");
   const [blocks, setBlocks] = useState<AnswerBlock[]>([]);
   const [done, setDone] = useState(false);
@@ -228,6 +208,12 @@ export default function ChatPage() {
   const baby: BabyContext | null = userBaby
     ? { name: userBaby.name, gender: userBaby.gender, born: userBaby.born, age: userBaby.age || "" }
     : null;
+
+  // Prefetch back targets
+  useEffect(() => {
+    router.prefetch("/home");
+    router.prefetch(`/topic/${topicId}`);
+  }, [router, topicId]);
 
   // Load existing conversation only
   useEffect(() => {
@@ -253,7 +239,7 @@ export default function ChatPage() {
           const lastAssistant = msgs.filter((m: Message) => m.role === "assistant").pop();
           if (lastAssistant) {
             setBlocks(parseAnswer(lastAssistant.content));
-            setSources(extractSources(lastAssistant.content));
+            setSources(extractSources(lastAssistant.content, convo.topic_id));
             setDone(true);
           }
         }
@@ -305,7 +291,7 @@ export default function ChatPage() {
       if (localMissing || dbHasMore) {
         setMessages(msgs as Message[]);
         setBlocks(parseAnswer(dbLastAssistant.content));
-        setSources(extractSources(dbLastAssistant.content));
+        setSources(extractSources(dbLastAssistant.content, topicId));
         setLeadText(dbLastAssistant.content);
         setDone(true);
         setStreaming(false);
@@ -316,45 +302,6 @@ export default function ChatPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [convoId, messages]);
 
-  const userScrolledUp = useRef(false);
-  const isProgrammaticScroll = useRef(false);
-
-  // Track whether the user has scrolled up during streaming
-  useEffect(() => {
-    const s = scrollRef.current;
-    if (!s) return;
-
-    // Detect user touch/pointer — immediately lock scroll position
-    const handleInteractionStart = () => {
-      if (streaming) userScrolledUp.current = true;
-    };
-
-    // Only unlock when user scrolls back near the bottom themselves
-    const handleScroll = () => {
-      if (isProgrammaticScroll.current) return;
-      const nearBottom = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
-      if (nearBottom) userScrolledUp.current = false;
-    };
-
-    s.addEventListener("touchstart", handleInteractionStart, { passive: true });
-    s.addEventListener("mousedown", handleInteractionStart);
-    s.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      s.removeEventListener("touchstart", handleInteractionStart);
-      s.removeEventListener("mousedown", handleInteractionStart);
-      s.removeEventListener("scroll", handleScroll);
-    };
-  }, [streaming]);
-
-  const scrollToBottom = useCallback(() => {
-    const s = scrollRef.current;
-    if (s && !userScrolledUp.current) {
-      isProgrammaticScroll.current = true;
-      s.scrollTop = s.scrollHeight;
-      requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
-    }
-  }, []);
-
   useEffect(() => {
     scrollToBottom();
   }, [leadText, blocks, messages, scrollToBottom]);
@@ -364,7 +311,7 @@ export default function ChatPage() {
       const q = text.trim();
       if (!q || !familyId) return;
 
-      userScrolledUp.current = false; // reset so new answer auto-scrolls
+      resetScroll(); // reset so new answer auto-scrolls
       const newMessages: Message[] = [...messages, { role: "user", content: q }];
       setMessages(newMessages);
       setInput("");
@@ -489,7 +436,7 @@ export default function ChatPage() {
 
         setMessages([...newMessages, { id: savedMsgId, role: "assistant", content: fullText, pinned: false }]);
         setBlocks(parseAnswer(fullText));
-        setSources(extractSources(fullText));
+        setSources(extractSources(fullText, topicId));
         setDone(true);
         refreshConvos();
         refreshSuggestions(topicId);
@@ -498,7 +445,7 @@ export default function ChatPage() {
         fetch("/api/followups", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q, answer: fullText }),
+          body: JSON.stringify({ question: q, answer: fullText, topicId }),
         })
           .then((r) => r.json())
           .then((data) => {
@@ -637,8 +584,8 @@ export default function ChatPage() {
   return (
     <div className="fixed inset-0 bg-g-bg flex flex-col">
       <TopBar
-        onBack={() => router.push(hasAsked ? `/topic/${topicId}` : "/home")}
-        title={hasAsked ? (getTopicById(topicId)?.name || "Breastfeeding") : undefined}
+        onBack={() => startTransition(() => router.push(hasAsked ? `/topic/${topicId}` : "/home"))}
+        title={hasAsked ? (getTopicById(topicId)?.name || "Grounded") : undefined}
         right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>}
       />
 
@@ -672,7 +619,7 @@ export default function ChatPage() {
             {historyMessages.map((msg, i) => (
               msg.role === "user" ? (
                 <div key={i} className="flex flex-col items-end mb-[22px]">
-                  <Kicker className="mb-[6px] mr-1">{hasPartner && msg.user_id ? memberName(msg.user_id) || me : me}</Kicker>
+                  <Kicker className="mb-[6px] mr-1">{msg.user_id ? memberName(msg.user_id) || me : me}</Kicker>
                   <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
                     {msg.content}
                   </div>
@@ -690,9 +637,9 @@ export default function ChatPage() {
                       <AnswerBlockRenderer key={j} block={block} />
                     ))}
                   </div>
-                  {extractSources(msg.content).length > 0 && (
+                  {extractSources(msg.content, topicId).length > 0 && (
                     <div className="mt-5 flex flex-wrap gap-2">
-                      {extractSources(msg.content).map((s, j) => (
+                      {extractSources(msg.content, topicId).map((s, j) => (
                         <span key={j} className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]">
                           <Book size={13} />{s}
                         </span>
@@ -839,7 +786,7 @@ export default function ChatPage() {
             <div className="flex-1 font-body text-[13.5px] leading-[1.4] text-g-ink">
               This conversation is getting long — you&rsquo;ll get better answers if you{" "}
               <button
-                onClick={() => router.push(`/chat/new?topic=${topicId}`)}
+                onClick={() => startTransition(() => router.push(`/chat/new?topic=${topicId}`))}
                 className="inline font-bold text-g-prim bg-transparent border-none p-0 cursor-pointer underline underline-offset-2"
               >
                 start a new one
@@ -932,135 +879,4 @@ export default function ChatPage() {
   );
 }
 
-/** Parse streamed markdown into typed blocks */
-function parseAnswer(text: string): AnswerBlock[] {
-  const blocks: AnswerBlock[] = [];
-  const lines = text.split("\n");
-  let currentParagraph = "";
-  let currentOl: string[] = [];
-  let currentUl: string[] = [];
-  let isFirst = true;
-
-  const flushParagraph = () => {
-    if (currentParagraph.trim()) {
-      blocks.push({
-        type: isFirst ? "lead" : "p",
-        md: currentParagraph.trim(),
-      });
-      isFirst = false;
-      currentParagraph = "";
-    }
-  };
-
-  const flushLists = () => {
-    if (currentOl.length > 0) {
-      blocks.push({ type: "ol", items: [...currentOl] });
-      currentOl = [];
-    }
-    if (currentUl.length > 0) {
-      blocks.push({ type: "ul", items: [...currentUl] });
-      currentUl = [];
-    }
-  };
-
-  const inList = () => currentOl.length > 0 || currentUl.length > 0;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Video marker: :::video{title="..." channel="..." dur="..." videoId="..." thumbnailUrl="..."}
-    const videoMatch = trimmed.match(/^:::video\{(.+)\}(?:::)?$/);
-    if (videoMatch) {
-      flushParagraph();
-      flushLists();
-      const attrs: Record<string, string> = {};
-      const attrRegex = /(\w+)="([^"]*)"/g;
-      let m;
-      while ((m = attrRegex.exec(videoMatch[1])) !== null) {
-        attrs[m[1]] = m[2];
-      }
-      if (attrs.title) {
-        blocks.push({
-          type: "video",
-          title: attrs.title,
-          channel: attrs.channel,
-          dur: attrs.dur,
-          videoId: attrs.videoId,
-          thumbnailUrl: attrs.thumbnailUrl,
-        });
-      }
-      continue;
-    }
-
-    // Headings
-    if (/^#{1,4}\s+/.test(trimmed)) {
-      flushParagraph();
-      flushLists();
-      blocks.push({ type: "h", text: trimmed.replace(/^#+\s+/, "") });
-      continue;
-    }
-
-    // Horizontal rules
-    if (/^-{3,}$/.test(trimmed) || /^\*{3,}$/.test(trimmed)) {
-      flushParagraph();
-      flushLists();
-      continue;
-    }
-
-    // Numbered list items
-    const listMatch = trimmed.match(/^\d+\.\s+(.+)/);
-    if (listMatch) {
-      flushParagraph();
-      if (currentUl.length > 0) flushLists();
-      currentOl.push(listMatch[1]);
-      continue;
-    }
-
-    // Bullet list items
-    if (trimmed.startsWith("- ") || trimmed.startsWith("\u2022 ")) {
-      flushParagraph();
-      if (currentOl.length > 0) flushLists();
-      currentUl.push(trimmed.slice(2));
-      continue;
-    }
-
-    // Blank lines: skip inside lists, flush paragraphs outside
-    if (!trimmed) {
-      if (!inList()) {
-        flushParagraph();
-      }
-      continue;
-    }
-
-    // Non-blank text while inside a list: flush list and start new paragraph
-    if (inList()) {
-      flushLists();
-    }
-
-    // Regular paragraph text
-    if (currentParagraph) currentParagraph += " ";
-    currentParagraph += trimmed;
-  }
-
-  flushLists();
-  flushParagraph();
-  return blocks;
-}
-
-/** Extract source book names from the answer text */
-function extractSources(text: string): string[] {
-  const sourceSet = new Set<string>();
-  const patterns = [
-    /\bHuggins\b/i,
-    /\bMohrbacher\b/i,
-    /\bLa Leche League\b/i,
-  ];
-  const labels = ["Huggins", "Mohrbacher", "La Leche League"];
-
-  patterns.forEach((p, i) => {
-    if (p.test(text)) sourceSet.add(labels[i]);
-  });
-
-  return Array.from(sourceSet);
-}
 
