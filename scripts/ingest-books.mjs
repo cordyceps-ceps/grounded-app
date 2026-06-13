@@ -96,6 +96,11 @@ const BOOKS_BY_TOPIC = {
       title: 'How Children Develop',
       author: 'Siegler, Saffran & Eisenberg',
     },
+    {
+      file: 'the-happiest-baby-on-the-block.pdf',
+      title: 'The Happiest Baby on the Block',
+      author: 'Harvey Karp',
+    },
   ],
 };
 

@@ -102,6 +102,7 @@ Rules:
       { title: "Brain Rules for Baby", author: "John Medina", spine: "#3a5a6b", amazonUrl: "https://www.amazon.co.uk/Brain-Rules-Baby-Updated-Expanded/dp/0983263388" },
       { title: "Your Baby & Child", author: "Penelope Leach", spine: "#6b4a5a", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Child-Birth-Five/dp/0241562651" },
       { title: "How Children Develop", author: "Siegler, Saffran & Eisenberg", spine: "#4a6b5a", amazonUrl: "https://www.amazon.co.uk/How-Children-Develop-Robert-Siegler/dp/1319184561" },
+      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#9a5a3f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
     ],
     note: "These are the sources Grounded draws from for this topic. Consider supporting the authors.",
     helplines: [
