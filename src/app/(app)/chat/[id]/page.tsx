@@ -187,7 +187,8 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState(() => (params.id === "new" ? searchParams.get("prefill") || "" : ""));
+  const [input, setInput] = useState("");
+  const autoSentRef = useRef(false);
   const [streaming, setStreaming] = useState(false);
   const { scrollRef, scrollToBottom, resetScroll } = useAutoScroll(streaming);
   const [leadText, setLeadText] = useState("");
@@ -465,6 +466,16 @@ export default function ChatPage() {
   const handleSend = () => {
     if (input.trim()) sendQuestion(input);
   };
+
+  // Auto-submit a prefilled question on new conversations (e.g. from the timeline)
+  useEffect(() => {
+    if (!loaded || !isNew || autoSentRef.current) return;
+    const prefill = searchParams.get("prefill");
+    if (prefill) {
+      autoSentRef.current = true;
+      sendQuestion(prefill);
+    }
+  }, [loaded, isNew, searchParams, sendQuestion]);
 
   const handleMicPress = async () => {
     if (isRecording && mediaRecorderRef.current) {
