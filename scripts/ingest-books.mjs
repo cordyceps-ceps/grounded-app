@@ -70,6 +70,13 @@ const BOOKS_BY_TOPIC = {
       author: 'Harvey Karp',
     },
   ],
+  wbw: [
+    {
+      file: 'your-baby-week-by-week.pdf',
+      title: 'Your Baby Week by Week',
+      author: 'Simone Cave & Caroline Fertleman',
+    },
+  ],
   develop: [
     {
       file: 'your-baby-week-by-week.pdf',

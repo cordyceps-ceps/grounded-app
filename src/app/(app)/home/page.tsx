@@ -7,6 +7,7 @@ import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Downloa
 import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
+import { TimelineHomeCard } from "@/components/TimelineHomeCard";
 import { TOPICS } from "@/lib/topics";
 import { getGreeting } from "@/lib/utils";
 import { timeAgo } from "@/lib/format";
@@ -150,7 +151,7 @@ export default function HomePage() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const { me, baby, convos, loaded, familyId } = useUser();
-  const topics = TOPICS;
+  const topics = TOPICS.filter((t) => !t.hidden);
   const isAdmin = familyId === "9972834c-8965-45f1-8a82-8b36a0f67e5d";
 
   const sub = baby
@@ -159,7 +160,7 @@ export default function HomePage() {
       : `${baby.name} is on the way. What\u2019s on your mind?`
     : "What\u2019s on your mind?";
 
-  const topicName = (id: string) => topics.find((t) => t.id === id)?.name || id;
+  const topicName = (id: string) => TOPICS.find((t) => t.id === id)?.name || id;
 
   if (!loaded) {
     return (
@@ -207,6 +208,8 @@ export default function HomePage() {
         </div>
 
         <InstallBanner />
+
+        <TimelineHomeCard />
 
         {/* Topics */}
         <Kicker className="mb-3">Topics</Kicker>

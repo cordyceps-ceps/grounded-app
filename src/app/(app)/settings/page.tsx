@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users, Copy, Share2, Check, LogOut, Link2, Loader,
-  User, Calendar, Leaf, Baby, Plus, Pencil, Trash2,
+  User, Calendar, Leaf, Baby, Plus, Pencil, Trash2, Plug, Sparkles,
 } from "lucide-react";
 import { TopBar, Button, Kicker, Field, Segmented, Sheet } from "@/components/ui";
 import { useUser } from "@/components/UserProvider";
@@ -28,6 +28,14 @@ export default function SettingsPage() {
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Claude connector (MCP)
+  const [mcpToken, setMcpToken] = useState<string | null>(null);
+  const [mcpLoading, setMcpLoading] = useState(true);
+  const [mcpGenerating, setMcpGenerating] = useState(false);
+  const [mcpRevoking, setMcpRevoking] = useState(false);
+  const [mcpCopied, setMcpCopied] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   // Baby profile editing
   const [babyName, setBabyName] = useState("");
@@ -111,6 +119,49 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    fetch("/api/mcp/token")
+      .then((r) => r.json())
+      .then((data) => setMcpToken(data.token ?? null))
+      .catch(() => {})
+      .finally(() => setMcpLoading(false));
+  }, []);
+
+  const mcpUrl = mcpToken ? `${origin}/api/mcp/connect/${mcpToken}` : "";
+
+  const generateMcpToken = async () => {
+    setMcpGenerating(true);
+    try {
+      const res = await fetch("/api/mcp/token", { method: "POST" });
+      const data = await res.json();
+      if (data.token) setMcpToken(data.token);
+    } catch {
+      // silent
+    } finally {
+      setMcpGenerating(false);
+    }
+  };
+
+  const revokeMcpToken = async () => {
+    setMcpRevoking(true);
+    try {
+      await fetch("/api/mcp/token", { method: "DELETE" });
+      setMcpToken(null);
+    } catch {
+      // silent
+    } finally {
+      setMcpRevoking(false);
+    }
+  };
+
+  const copyMcpUrl = async () => {
+    if (!mcpUrl) return;
+    await navigator.clipboard.writeText(mcpUrl);
+    setMcpCopied(true);
+    setTimeout(() => setMcpCopied(false), 2000);
+  };
 
   const handleBabyChange = () => {
     setBabyDirty(true);
@@ -438,6 +489,72 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+
+        {/* Claude connector */}
+        <Kicker className="mb-3">Claude connector</Kicker>
+        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-6">
+          <div className="flex items-center gap-[10px] mb-[10px]">
+            <Plug size={18} className="text-g-prim shrink-0" />
+            <span className="font-body text-[14.5px] font-semibold text-g-ink">
+              Ask Grounded from Claude
+            </span>
+          </div>
+          <div className="font-body text-[13px] text-g-sub leading-[1.5] mb-[14px]">
+            Connect this to the Claude app as a custom connector, then ask Claude
+            parenting questions and it will pull answers straight from Grounded&rsquo;s
+            books &mdash; with {baby?.name || "your baby"}&rsquo;s context included.
+          </div>
+
+          {mcpLoading ? (
+            <div className="font-body text-[13.5px] text-g-sub">Loading&hellip;</div>
+          ) : mcpToken ? (
+            <div>
+              <div className="bg-g-bg rounded-[14px] p-[13px] flex items-center gap-2 mb-[12px]">
+                <span className="flex-1 font-mono text-[12px] text-g-ink truncate min-w-0">
+                  {mcpUrl}
+                </span>
+                <button
+                  onClick={copyMcpUrl}
+                  className="w-9 h-9 rounded-full bg-g-panel flex items-center justify-center border-none cursor-pointer text-g-sub shadow-[var(--g-shadow-sm)] shrink-0"
+                  aria-label="Copy connector URL"
+                >
+                  {mcpCopied ? <Check size={16} className="text-g-prim" /> : <Copy size={16} />}
+                </button>
+              </div>
+
+              <div className="bg-g-prim-soft rounded-[12px] p-[13px] mb-[12px]">
+                <div className="flex items-center gap-[7px] mb-[8px]">
+                  <Sparkles size={15} className="text-g-prim shrink-0" />
+                  <span className="font-body text-[13px] font-semibold text-g-ink">How to add it</span>
+                </div>
+                <ol className="font-body text-[12.5px] text-g-sub leading-[1.6] list-decimal pl-[18px] space-y-[2px]">
+                  <li>In the Claude app, open Settings &rarr; Connectors</li>
+                  <li>Tap &ldquo;Add custom connector&rdquo;</li>
+                  <li>Paste the URL above and save</li>
+                  <li>In a chat, enable it and ask a parenting question</li>
+                </ol>
+              </div>
+
+              <button
+                onClick={revokeMcpToken}
+                disabled={mcpRevoking}
+                className="w-full flex items-center justify-center gap-2 font-body text-[13px] font-semibold text-red-500 bg-transparent border-[1.5px] border-red-200 rounded-[12px] py-[10px] cursor-pointer"
+              >
+                {mcpRevoking ? "Revoking\u2026" : "Revoke connector"}
+              </button>
+            </div>
+          ) : (
+            <Button full onClick={generateMcpToken} disabled={mcpGenerating}>
+              {mcpGenerating ? (
+                <span className="flex items-center gap-2">
+                  <Loader size={16} className="animate-spin" /> Generating&hellip;
+                </span>
+              ) : (
+                "Generate connector link"
+              )}
+            </Button>
+          )}
+        </div>
 
         {/* Logout */}
         <button

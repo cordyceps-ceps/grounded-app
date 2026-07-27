@@ -29,6 +29,7 @@ export interface Topic {
   care?: boolean;
   helplines?: Helpline[];
   promptGuidance?: string;
+  hidden?: boolean;
 }
 
 export const TOPICS: Topic[] = [
@@ -133,6 +134,23 @@ Rules:
 3. When a parent asks "is this normal?", check the age and give a clear, direct answer. If it IS normal for their age, say so plainly. If it's early or late relative to typical ranges, explain the range honestly.
 4. Do NOT catastrophise about developmental variation. Most babies are within normal range. Only flag genuine red flags (no social smile by 3 months, no babbling by 9 months, loss of previously acquired skills at any age).
 5. When books offer different perspectives on the same milestone, synthesise them — development books tend to complement rather than conflict. Draw on Siegler et al for the "why" and the practical books for the "what to do".`,
+  },
+  {
+    id: "wbw",
+    name: "Week by week",
+    blurb: "The week-by-week timeline, book only.",
+    ready: true,
+    hidden: true,
+    sources: [
+      { title: "Your Baby Week by Week", author: "Simone Cave & Caroline Fertleman", spine: "#5a7a6b", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Week-Ultimate-Guide/dp/0091910552" },
+    ],
+    note: "This is the source Grounded draws from for this timeline. Consider supporting the authors.",
+    helplines: [
+      { name: "Health visitor / GP", tel: "Contact your local surgery" },
+      { name: "NHS 111", tel: "111" },
+    ],
+    promptGuidance: `WEEK-BY-WEEK GUIDANCE:
+This conversation was opened from the week-by-week milestone timeline, scoped to a single milestone. Answer using only Your Baby Week by Week — do not cite or blend in the other child-development books. Keep the answer tightly anchored to the baby's current age and the specific milestone asked about. Ranges, not deadlines: never present a single age as when something "should" happen. If something sounds like a genuine concern, point to a health visitor or GP.`,
   },
   {
     id: "weaning",

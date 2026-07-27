@@ -187,7 +187,7 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() => (params.id === "new" ? searchParams.get("prefill") || "" : ""));
   const [streaming, setStreaming] = useState(false);
   const { scrollRef, scrollToBottom, resetScroll } = useAutoScroll(streaming);
   const [leadText, setLeadText] = useState("");
