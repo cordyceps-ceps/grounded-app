@@ -132,8 +132,7 @@ export async function GET() {
       convo_count: count,
       question_count: familyMsgCounts.get(fid) || 0,
     }))
-    .sort((a, b) => b.convo_count - a.convo_count)
-    .slice(0, 5);
+    .sort((a, b) => b.convo_count - a.convo_count);
 
   return Response.json({
     totalUsers: allUsers.length,

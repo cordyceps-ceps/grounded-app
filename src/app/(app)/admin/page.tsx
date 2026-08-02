@@ -199,6 +199,7 @@ export default function AdminPage() {
   const { familyId } = useUser();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAllUsers, setShowAllUsers] = useState(false);
 
   useEffect(() => {
     router.prefetch("/home");
@@ -304,13 +305,11 @@ export default function AdminPage() {
         {stats.topUsers.length > 0 && (
           <>
             <Kicker className="mb-3">Top users</Kicker>
-            <div className="bg-g-panel rounded-[16px] shadow-[var(--g-shadow-sm)] overflow-hidden mb-6">
-              {stats.topUsers.map((u, i) => (
+            <div className="bg-g-panel rounded-[16px] shadow-[var(--g-shadow-sm)] overflow-hidden mb-3">
+              {(showAllUsers ? stats.topUsers : stats.topUsers.slice(0, 5)).map((u, i) => (
                 <div
                   key={i}
-                  className={`flex items-center gap-3 py-[13px] px-4 ${
-                    i < stats.topUsers.length - 1 ? "border-b border-g-line" : ""
-                  }`}
+                  className="flex items-center gap-3 py-[13px] px-4 border-b border-g-line last:border-b-0"
                 >
                   <span
                     className="w-[28px] h-[28px] rounded-full flex items-center justify-center font-body text-[12px] font-bold shrink-0"
@@ -333,6 +332,15 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+            {stats.topUsers.length > 5 && (
+              <button
+                onClick={() => setShowAllUsers((v) => !v)}
+                className="block w-full text-center font-body text-[13px] font-semibold text-g-prim bg-transparent border-none cursor-pointer py-1 mb-6"
+              >
+                {showAllUsers ? "Show less" : `Show all ${stats.topUsers.length}`}
+              </button>
+            )}
+            {stats.topUsers.length <= 5 && <div className="mb-6" />}
           </>
         )}
 
