@@ -33,6 +33,12 @@ interface TopUser {
   question_count: number;
 }
 
+interface TopicPopularity {
+  topic_id: string;
+  name: string;
+  count: number;
+}
+
 interface Stats {
   totalUsers: number;
   totalConversations: number;
@@ -41,6 +47,7 @@ interface Stats {
   dailyActiveUsers: DayCount[];
   dailySignups: DayCount[];
   topUsers: TopUser[];
+  topicPopularity: TopicPopularity[];
 }
 
 // Fill missing days in a 30-day range so chart has no gaps
@@ -341,6 +348,35 @@ export default function AdminPage() {
               </button>
             )}
             {stats.topUsers.length <= 5 && <div className="mb-6" />}
+          </>
+        )}
+
+        {/* Topic popularity */}
+        {stats.topicPopularity.length > 0 && (
+          <>
+            <Kicker className="mb-3">Topic popularity</Kicker>
+            <div className="bg-g-panel rounded-[16px] shadow-[var(--g-shadow-sm)] p-4 mb-6">
+              {stats.topicPopularity.map((t, i) => {
+                const max = stats.topicPopularity[0].count || 1;
+                const pct = Math.max(4, Math.round((t.count / max) * 100));
+                return (
+                  <div key={t.topic_id} className={i > 0 ? "mt-[14px]" : ""}>
+                    <div className="flex items-center justify-between mb-[6px]">
+                      <span className="font-body text-[13.5px] font-semibold text-g-ink">{t.name}</span>
+                      <span className="font-body text-[12.5px] text-g-faint">
+                        {t.count} {t.count === 1 ? "convo" : "convos"}
+                      </span>
+                    </div>
+                    <div className="h-[6px] rounded-full bg-g-panel2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: "var(--g-prim)" }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </>
         )}
 

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { getTopicById } from "@/lib/topics";
 
 const ADMIN_FAMILY_ID = process.env.ADMIN_FAMILY_ID!;
 
@@ -50,7 +51,7 @@ export async function GET() {
 
       supabase
         .from("conversations")
-        .select("id, family_id, created_at")
+        .select("id, family_id, topic_id, created_at")
         .neq("family_id", ADMIN_FAMILY_ID),
 
       supabase
@@ -134,6 +135,20 @@ export async function GET() {
     }))
     .sort((a, b) => b.convo_count - a.convo_count);
 
+  // Topic popularity by conversation count, all-time
+  const topicCounts = new Map<string, number>();
+  for (const c of allConvos as { topic_id: string }[]) {
+    topicCounts.set(c.topic_id, (topicCounts.get(c.topic_id) || 0) + 1);
+  }
+
+  const topicPopularity = Array.from(topicCounts.entries())
+    .map(([topicId, count]) => ({
+      topic_id: topicId,
+      name: getTopicById(topicId)?.name || topicId,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
   return Response.json({
     totalUsers: allUsers.length,
     totalConversations: allConvos.length,
@@ -142,6 +157,7 @@ export async function GET() {
     dailyActiveUsers,
     dailySignups,
     topUsers,
+    topicPopularity,
   });
 }
 
