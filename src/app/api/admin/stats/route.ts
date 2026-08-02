@@ -41,7 +41,7 @@ export async function GET() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Fetch all data in parallel using query builder (no RPC functions needed)
-  const [usersRes, allConvosRes, recentConvosRes, recentMsgsRes, allConvoMapRes] =
+  const [usersRes, allConvosRes, recentConvosRes, recentMsgsRes, allMsgsRes, allConvoMapRes] =
     await Promise.all([
       supabase
         .from("user_profiles")
@@ -65,6 +65,12 @@ export async function GET() {
         .eq("role", "user")
         .gte("created_at", thirtyDaysAgo),
 
+      // All-time user messages — needed for all-time top users
+      supabase
+        .from("messages")
+        .select("id, user_id, created_at, conversation_id")
+        .eq("role", "user"),
+
       // All conversation IDs with their family — needed to filter messages
       supabase
         .from("conversations")
@@ -75,6 +81,7 @@ export async function GET() {
   const allConvos = allConvosRes.data || [];
   const recentConvos = recentConvosRes.data || [];
   const recentMsgs = recentMsgsRes.data || [];
+  const allMsgs = allMsgsRes.data || [];
 
   // Map conversation → family so we can filter messages
   const convoFamily = new Map<string, string>();
@@ -86,6 +93,9 @@ export async function GET() {
   const filteredMsgs = recentMsgs.filter(
     (m) => convoFamily.get(m.conversation_id) !== ADMIN_FAMILY_ID
   );
+  const filteredAllMsgs = allMsgs.filter(
+    (m) => convoFamily.get(m.conversation_id) !== ADMIN_FAMILY_ID
+  );
 
   // --- Aggregations ---
 
@@ -94,7 +104,7 @@ export async function GET() {
   const recentSignups = allUsers.filter((u) => u.created_at >= thirtyDaysAgo);
   const dailySignups = groupByDay(recentSignups);
 
-  // Top users by conversation count (grouped by family)
+  // Top users by conversation count (grouped by family), all-time
   const familyNames = new Map<string, string>();
   for (const u of allUsers) {
     if (!familyNames.has(u.family_id)) {
@@ -103,13 +113,13 @@ export async function GET() {
   }
 
   const familyCounts = new Map<string, number>();
-  for (const c of recentConvos) {
+  for (const c of allConvos) {
     familyCounts.set(c.family_id, (familyCounts.get(c.family_id) || 0) + 1);
   }
 
-  // Count messages (questions) per family in last 30 days
+  // Count messages (questions) per family, all-time
   const familyMsgCounts = new Map<string, number>();
-  for (const m of filteredMsgs) {
+  for (const m of filteredAllMsgs) {
     const fid = convoFamily.get(m.conversation_id);
     if (fid) {
       familyMsgCounts.set(fid, (familyMsgCounts.get(fid) || 0) + 1);
