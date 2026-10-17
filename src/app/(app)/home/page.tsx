@@ -9,6 +9,7 @@ import { SpotConversations } from "@/components/illustrations";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { TimelineHomeCard } from "@/components/TimelineHomeCard";
+import { AskAnythingCard } from "@/components/AskAnythingCard";
 import { TOPICS } from "@/lib/topics";
 import { getGreeting } from "@/lib/utils";
 import { timeAgo } from "@/lib/format";
@@ -166,6 +167,8 @@ export default function HomePage() {
           </div>
           <div className="font-body text-[15px] text-g-sub mt-[13px] leading-[1.5]">{sub}</div>
         </div>
+
+        <AskAnythingCard />
 
         <InstallBanner />
 

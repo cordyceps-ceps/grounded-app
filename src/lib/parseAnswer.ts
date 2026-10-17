@@ -1,4 +1,4 @@
-import { getTopicById } from "@/lib/topics";
+import { getTopicById, isAllTopic, searchableTopics, type Topic } from "@/lib/topics";
 
 export interface AnswerBlock {
   type: "lead" | "h" | "p" | "ol" | "ul" | "video" | "callout";
@@ -141,10 +141,9 @@ export function parseAnswer(text: string): AnswerBlock[] {
 
 /** Extract source book names from the answer text based on topic's authors */
 export function extractSources(text: string, topicId?: string): string[] {
-  const topic = getTopicById(topicId || "bf");
-  if (!topic) return [];
+  const topics = isAllTopic(topicId) ? searchableTopics() : [getTopicById(topicId || "bf")].filter((t): t is Topic => !!t);
   const sourceSet = new Set<string>();
-  for (const s of topic.sources) {
+  for (const s of topics.flatMap((t) => t.sources)) {
     const words = s.author.split(/\s+/);
     const lastName = words[words.length - 1];
     if (new RegExp(`\\b${lastName}\\b`, "i").test(text)) {

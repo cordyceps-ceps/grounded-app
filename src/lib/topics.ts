@@ -201,3 +201,23 @@ This conversation was opened from the week-by-week milestone timeline, scoped to
 export function getTopicById(id: string): Topic | undefined {
   return TOPICS.find((t) => t.id === id);
 }
+
+export const ALL_TOPIC_ID = "all";
+
+export function isAllTopic(id: string | null | undefined): boolean {
+  return id === ALL_TOPIC_ID;
+}
+
+/** Topics that "Ask anything" searches: ready and not hidden. New topics join automatically. */
+export function searchableTopics(): Topic[] {
+  return TOPICS.filter((t) => t.ready && !t.hidden);
+}
+
+/** Resolve an author to the topic (and source) it belongs to, across searchable topics. */
+export function findSourceByAuthor(author: string): { topic: Topic; source: Source } | undefined {
+  for (const topic of searchableTopics()) {
+    const source = topic.sources.find((s) => s.author === author);
+    if (source) return { topic, source };
+  }
+  return undefined;
+}

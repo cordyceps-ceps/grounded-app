@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { BrandMark, MoonLoader, SpotConversations, TopicArt } from "@/components/illustrations";
 import { Kicker } from "@/components/ui";
-import type { Topic } from "@/lib/topics";
+import { searchableTopics, type Topic } from "@/lib/topics";
 
 export function TopicStrip({ topic }: { topic: Topic }) {
   return (
@@ -84,5 +84,29 @@ export function FollowUpButton({ children, onClick }: { children: React.ReactNod
       <span className="flex-1">{children}</span>
       <ChevronRight size={16} className="shrink-0 text-g-clay" />
     </button>
+  );
+}
+
+/** Header band for "Ask anything": neutral moss with one dot per searched guide. */
+export function AllStrip() {
+  const topics = searchableTopics();
+  return (
+    <div className="relative shrink-0 overflow-hidden mx-5 mb-2 rounded-[22px] h-[64px] flex items-center px-[18px] text-g-ink bg-g-prim-soft">
+      <div>
+        <div className="font-body text-[11px] font-bold tracking-[1px] uppercase opacity-60">
+          Asking every book
+        </div>
+        <div className="font-display text-[23px] leading-[1.05]">Ask anything</div>
+      </div>
+      <div className="absolute right-[18px] top-1/2 -translate-y-1/2 flex">
+        {topics.map((t, i) => (
+          <span
+            key={t.id}
+            className="w-[30px] h-[30px] rounded-full border-[3px] border-g-prim-soft"
+            style={{ background: `var(--g-t-${t.hue})`, marginLeft: i ? -10 : 0 }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

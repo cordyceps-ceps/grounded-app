@@ -94,3 +94,28 @@ export function SpotTimeline(props: SpotProps) {
     </Spot>
   );
 }
+
+export function SpotAskAnything(props: SpotProps) {
+  return (
+    <Spot {...props}>
+      <circle cx="154" cy="40" r="20" className="i-sun" />
+      <g transform="rotate(-14 60 124)">
+        <rect x="34" y="42" width="40" height="92" rx="6" className="i-rose" />
+        <rect x="34" y="42" width="9" height="92" rx="4.5" className="i-clay" />
+      </g>
+      <g transform="rotate(-2 100 126)">
+        <rect x="80" y="30" width="42" height="104" rx="6" className="i-sky" />
+        <rect x="80" y="30" width="9" height="104" rx="4.5" className="i-mid" />
+      </g>
+      <g transform="rotate(11 144 126)">
+        <rect x="124" y="46" width="40" height="88" rx="6" className="i-lilac" />
+        <rect x="124" y="46" width="9" height="88" rx="4.5" className="i-deep" />
+      </g>
+      <g strokeWidth="3" strokeLinecap="round" className="s-light" opacity=".7">
+        <path d="M98 58h16" />
+        <path d="M98 70h16" />
+      </g>
+      <path d="M22 28l2.6 7 7 2.6-7 2.6-2.6 7-2.6-7-7-2.6 7-2.6z" className="i-light" />
+    </Spot>
+  );
+}
