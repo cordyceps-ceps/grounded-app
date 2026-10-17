@@ -3,8 +3,9 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Moon, Plus, ChevronRight, ChevronDown, Clock, Play, Pin, Pencil, Trash2, AlertTriangle, Phone, Globe } from "lucide-react";
+import { Sun, Moon, Plus, ChevronRight, ChevronDown, Play, Pin, Pencil, Trash2, AlertTriangle, Phone, Globe } from "lucide-react";
 import { TopBar, Kicker, Cover, Button, IconBtn, Sheet, Field, Avatar } from "@/components/ui";
+import { TopicArt, SpotConversations, SpotCurating } from "@/components/illustrations";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { getTopicById } from "@/lib/topics";
@@ -139,11 +140,28 @@ export default function TopicPage() {
         style={{ padding: `4px 20px calc(env(safe-area-inset-bottom, 0px) + ${topic.ready ? "16px" : "24px"})` }}
       >
         {/* Title */}
-        <div className="g-up font-display text-[40px] leading-[1.02] text-g-ink mb-5">{topic.name}</div>
+        <div
+          className="g-up relative overflow-hidden rounded-[28px] text-g-ink mb-5"
+          style={{ background: `var(--g-t-${topic.hue})`, minHeight: 176, padding: "22px 22px 20px" }}
+        >
+          <div className="relative z-10 max-w-[62%]">
+            <div className="font-body text-[11px] font-bold tracking-[1px] uppercase opacity-65 mb-[10px]">
+              {topic.ready ? `${topic.sources.length} ${topic.sources.length === 1 ? "book" : "books"}` : "Being curated"}
+            </div>
+            <div className="font-display text-[38px] leading-[1.0]">{topic.name}</div>
+            <div className="font-body text-[13px] leading-[1.45] mt-[10px] opacity-80">{topic.blurb}</div>
+          </div>
+          <TopicArt
+            topicId={topic.id}
+            width={150}
+            height={150}
+            className="absolute -right-4 -bottom-4"
+          />
+        </div>
 
         {/* Baby context card */}
         {baby && (
-          <div className="g-up bg-g-panel rounded-[20px] p-[19px] mb-[26px] shadow-[var(--g-shadow)]">
+          <div className="g-up bg-g-panel rounded-[26px] p-[20px] mb-[28px] shadow-[var(--g-shadow-sm)]">
             <div className="flex justify-between items-baseline">
               <div className="font-display text-[30px] text-g-ink leading-[1]">{baby.name}</div>
               <div className="font-body text-[13px] text-g-faint">
@@ -159,16 +177,16 @@ export default function TopicPage() {
             <Kicker color="var(--g-prim)" className="mb-[11px]">What Grounded keeps in mind</Kicker>
 
             {!topic.ready ? (
-              <div className="bg-g-panel2 rounded-[13px] p-[14px]">
+              <div className="bg-g-panel2 rounded-[18px] p-[14px]">
                 <div className="font-body text-[13.5px] leading-[1.5] text-g-sub">
                   You&rsquo;ll add facts about {baby.name} here once this guide opens.
                 </div>
               </div>
             ) : (
-              <div className="bg-g-panel2 rounded-[13px] p-[15px]">
+              <div className="bg-g-panel2 rounded-[18px] p-[15px]">
                 {/* Stale facts banner */}
                 {staleFacts.length > 0 && (
-                  <div className="bg-g-honey-soft rounded-[11px] p-[12px] mb-3">
+                  <div className="bg-g-honey-soft rounded-[16px] p-[13px] mb-3">
                     <div className="flex items-start gap-[10px] mb-[10px]">
                       <AlertTriangle size={16} className="text-g-honey shrink-0 mt-[2px]" />
                       <div className="font-body text-[13px] leading-[1.45] text-g-ink">
@@ -177,24 +195,24 @@ export default function TopicPage() {
                     </div>
                     <div className="flex flex-col gap-[6px]">
                       {staleFacts.map((fact) => (
-                        <div key={fact.id} className="bg-white/60 dark:bg-black/10 rounded-[9px] py-[8px] px-[11px]">
+                        <div key={fact.id} className="bg-g-panel rounded-[9px] py-[8px] px-[11px]">
                           <div className="font-body text-[13px] leading-[1.4] text-g-ink mb-[6px]">{fact.content}</div>
                           <div className="flex gap-[6px]">
                             <button
                               onClick={() => openEdit(fact)}
-                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-g-panel2 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
                             >
                               <Pencil size={11} />Update
                             </button>
                             <button
                               onClick={() => handleDelete(fact.id)}
-                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-g-panel2 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
                             >
                               <Trash2 size={11} />Remove
                             </button>
                             <button
                               onClick={() => handlePin(fact.id, false)}
-                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-white/70 dark:bg-white/10 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
+                              className="flex items-center gap-[4px] font-body text-[11.5px] font-semibold text-g-honey bg-g-panel2 border-none rounded-[7px] py-[5px] px-[8px] cursor-pointer"
                             >
                               <Pin size={11} />Still true
                             </button>
@@ -216,7 +234,7 @@ export default function TopicPage() {
                         <div key={fact.id}>
                           <button
                             onClick={() => isGlobal ? startTransition(() => router.push("/settings")) : setExpandedId(expanded ? null : fact.id)}
-                            className={`w-full text-left border-none rounded-[11px] py-[10px] px-[13px] flex items-start gap-[10px] ${
+                            className={`w-full text-left border-none rounded-[14px] py-[11px] px-[14px] flex items-start gap-[10px] ${
                               isGlobal ? "bg-g-prim-soft/40 cursor-pointer" : stale ? "bg-g-honey-soft/50 ring-1 ring-g-honey/30 cursor-pointer" : "bg-g-bg cursor-pointer"
                             }`}
                           >
@@ -304,13 +322,13 @@ export default function TopicPage() {
               {topicPins.map((pin) => (
                 <div
                   key={pin.id}
-                  className="bg-g-panel rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)]"
+                  className="bg-g-panel rounded-[22px] py-[15px] px-[18px] shadow-[var(--g-shadow-sm)]"
                 >
                   <Link
                     href={`/chat/${pin.conversation_id}`}
                     className="no-underline block g-tap"
                   >
-                    <div className="font-display text-[17px] leading-[1.2] text-g-ink">
+                    <div className="font-display text-[19px] leading-[1.2] text-g-ink">
                       {pin.question}
                     </div>
                     <div className="font-body text-[13px] leading-[1.4] text-g-sub mt-[5px] line-clamp-1">
@@ -334,79 +352,88 @@ export default function TopicPage() {
 
         {/* Sources */}
         <Kicker className="mb-[14px]">On the shelf</Kicker>
-        <div className="g-up flex flex-col gap-[14px] mb-[14px]">
-          {topic.sources.map((s, i) => (
-            <div key={i} className="flex gap-[15px] items-center">
-              <Cover spine={s.spine} w={46} h={62} />
-              <span className="flex-1 min-w-0">
-                <span className="block font-display text-[20px] text-g-ink leading-[1.1]">{s.title}</span>
-                <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{s.author}</span>
-              </span>
-              {s.amazonUrl ? (
-                <a
-                  href={s.amazonUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="no-underline font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0"
-                >
-                  Buy
-                </a>
-              ) : (
-                <span className="font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0">
-                  Buy
-                </span>
-              )}
-            </div>
-          ))}
-          {topic.videos && (() => {
-            // Deduplicate by channel name for display
-            const seen = new Set<string>();
-            const uniqueChannels = topic.videos.filter((v) => {
-              if (seen.has(v.channel)) return false;
-              seen.add(v.channel);
-              return true;
-            });
-            return uniqueChannels.map((v, i) => {
-              const href = v.url || (v.channelId ? `https://www.youtube.com/channel/${v.channelId}` : `https://www.youtube.com/${v.handle}`);
-              return (
-                <div key={i} className="flex gap-[15px] items-center">
-                  <span className="w-[46px] h-[62px] rounded-[4px] bg-g-panel2 flex items-center justify-center text-g-prim shrink-0">
-                    <Play size={20} />
-                  </span>
-                  <span className="flex-1">
-                    <span className="block font-display text-[20px] text-g-ink leading-[1.1]">{v.channel}</span>
-                    <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{v.playlistId ? "YouTube playlist" : "YouTube channel"}</span>
-                  </span>
+        <div className="g-up -mx-5 px-5 overflow-x-auto mb-[18px]" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-[18px] w-max pb-[6px] pr-5">
+            {topic.sources.map((s, i) => (
+              <div key={i} className="w-[88px] flex flex-col items-start">
+                <Cover spine={s.spine} title={s.title} w={88} h={124} />
+                <span className="block font-body text-[11.5px] leading-[1.3] text-g-sub mt-[10px]">{s.author}</span>
+                {s.amazonUrl ? (
                   <a
-                    href={href}
+                    href={s.amazonUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="no-underline font-body text-[12.5px] font-bold text-g-prim bg-g-prim-soft rounded-[10px] py-[7px] px-3 shrink-0"
+                    className="no-underline mt-2 font-body text-[12px] font-bold text-g-prim bg-g-prim-soft rounded-full py-[5px] px-[13px]"
                   >
-                    Open
+                    Buy
                   </a>
-                </div>
-              );
-            });
-          })()}
+                ) : (
+                  <span className="mt-2 font-body text-[12px] font-bold text-g-prim bg-g-prim-soft rounded-full py-[5px] px-[13px]">
+                    Buy
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="font-body text-[13px] italic text-g-sub mb-[26px] leading-[1.5]">
+        {topic.videos && (() => {
+          // Deduplicate by channel name for display
+          const seen = new Set<string>();
+          const uniqueChannels = topic.videos.filter((v) => {
+            if (seen.has(v.channel)) return false;
+            seen.add(v.channel);
+            return true;
+          });
+          return (
+            <div className="g-up flex flex-col gap-[10px] mb-[18px]">
+              {uniqueChannels.map((v, i) => {
+                const href = v.url || (v.channelId ? `https://www.youtube.com/channel/${v.channelId}` : `https://www.youtube.com/${v.handle}`);
+                return (
+                  <div key={i} className="flex gap-[14px] items-center bg-g-panel rounded-[22px] py-[12px] px-[14px] shadow-[var(--g-shadow-sm)]">
+                    <span
+                      className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-g-ink shrink-0"
+                      style={{ background: `var(--g-t-${topic.hue})` }}
+                    >
+                      <Play size={17} />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-display text-[19px] text-g-ink leading-[1.1]">{v.channel}</span>
+                      <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{v.playlistId ? "YouTube playlist" : "YouTube channel"}</span>
+                    </span>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="no-underline font-body text-[12px] font-bold text-g-prim bg-g-prim-soft rounded-full py-[6px] px-[14px] shrink-0"
+                    >
+                      Open
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+        <div className="font-body text-[13px] italic text-g-sub mb-[28px] leading-[1.5]">
           {topic.note || "These are the books Grounded draws from for this guide. Consider supporting the authors."}
         </div>
 
         {/* Helplines */}
         {topic.helplines && topic.helplines.length > 0 && (
-          <>
-            <Kicker className="mb-[12px]">Need to talk to someone?</Kicker>
-            <div className="g-up flex flex-col gap-[10px] mb-[26px]">
+          <div className="g-up bg-g-honey-soft rounded-[26px] p-[18px] mb-[28px]">
+            <Kicker color="var(--g-honey)" className="mb-1">Need to talk to someone?</Kicker>
+            <div className="font-body text-[12.5px] text-g-sub leading-[1.45] mb-3">
+              Real people, on the phone, who know this well.
+            </div>
+            <div className="flex flex-col gap-2">
               {topic.helplines.map((h, i) => (
                 <a
                   key={i}
                   href={`tel:${h.tel.replace(/\s/g, "")}`}
-                  className="no-underline flex items-center gap-[13px] bg-g-panel rounded-[14px] py-[13px] px-4 shadow-[var(--g-shadow-sm)] g-tap"
+                  className="no-underline flex items-center gap-[13px] bg-g-panel rounded-[18px] py-[11px] px-[14px] g-tap"
                 >
-                  <span className="w-[38px] h-[38px] rounded-full bg-g-honey-soft text-g-honey flex items-center justify-center shrink-0">
-                    <Phone size={17} />
+                  <span className="w-[34px] h-[34px] rounded-full bg-g-honey-soft text-g-honey flex items-center justify-center shrink-0">
+                    <Phone size={15} />
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block font-body text-[14px] font-semibold text-g-ink leading-[1.3]">{h.name}</span>
@@ -415,7 +442,7 @@ export default function TopicPage() {
                 </a>
               ))}
             </div>
-          </>
+          </div>
         )}
 
         {/* Conversations or "Being curated" */}
@@ -423,7 +450,8 @@ export default function TopicPage() {
           <>
             <Kicker className="mb-3">Conversations here</Kicker>
             {convos.length === 0 ? (
-              <div className="bg-g-panel2 rounded-[16px] py-[18px] px-4 text-center">
+              <div className="bg-g-panel rounded-[26px] pt-3 pb-5 px-4 text-center shadow-[var(--g-shadow-sm)]">
+                <SpotConversations className="w-[150px] h-auto mx-auto" />
                 <div className="font-body text-[14px] text-g-sub leading-[1.5]">
                   No questions yet. Tap <strong className="text-g-ink">Ask something new</strong> below to start.
                 </div>
@@ -435,10 +463,10 @@ export default function TopicPage() {
                     key={c.id}
                     href={`/chat/${c.id}`}
                     prefetch
-                    className="w-full no-underline bg-g-panel rounded-[14px] py-[14px] px-4 shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center g-tap"
+                    className="w-full no-underline bg-g-panel rounded-[22px] py-[15px] px-[18px] shadow-[var(--g-shadow-sm)] flex justify-between gap-[10px] items-center g-tap"
                   >
                     <span className="min-w-0">
-                      <span className="block font-body text-[14.5px] font-semibold text-g-ink leading-[1.3]">
+                      <span className="block font-display text-[19px] text-g-ink leading-[1.15]">
                         {c.title || "Untitled conversation"}
                       </span>
                       <span className="block font-body text-[12px] text-g-faint mt-[3px]">{timeAgo(c.updated_at)}</span>
@@ -450,11 +478,9 @@ export default function TopicPage() {
             )}
           </>
         ) : (
-          <div className="bg-g-panel rounded-[18px] p-5 shadow-[var(--g-shadow-sm)] text-center">
-            <div className="w-[46px] h-[46px] rounded-full bg-g-honey-soft text-g-honey flex items-center justify-center mx-auto mb-3">
-              <Clock size={22} />
-            </div>
-            <div className="font-display text-[23px] text-g-ink mb-[6px]">Being curated</div>
+          <div className="bg-g-panel rounded-[26px] pt-3 pb-6 px-5 shadow-[var(--g-shadow-sm)] text-center">
+            <SpotCurating className="w-[190px] h-auto mx-auto" />
+            <div className="font-display text-[26px] text-g-ink mb-[6px] mt-1">Being <span className="italic text-g-clay">curated</span></div>
             <div className="font-body text-[13.5px] text-g-sub leading-[1.5] max-w-[270px] mx-auto">
               Nick is choosing and vetting the books for this guide. It&rsquo;ll open here as soon as it&rsquo;s ready
               {topic.care ? ", with extra care for this one" : ""}.

@@ -2,14 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { Sun, Moon, Leaf, Mic, Square, Loader, ArrowUp, Book, Copy, Pin, Phone, Play, ChevronRight, MessageCirclePlus, X } from "lucide-react";
+import { Sun, Moon, Mic, Square, Loader, ArrowUp, Copy, Pin, MessageCirclePlus, X } from "lucide-react";
 import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/components/UserProvider";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { getTopicById } from "@/lib/topics";
-import { parseAnswer, extractSources, mdInline, type AnswerBlock } from "@/lib/parseAnswer";
+import { parseAnswer, extractSources, type AnswerBlock } from "@/lib/parseAnswer";
+import { AnswerBlocks } from "@/components/answer/AnswerBlocks";
+import { SourcesRow } from "@/components/answer/SourcesRow";
+import {
+  TopicStrip, UserBubble, AssistantHeader, ThinkingIndicator,
+  SuggestionCard, EmptyIntro, FollowUpButton,
+} from "@/components/answer/ChatParts";
 
 interface Message {
   id?: string;
@@ -39,125 +45,6 @@ function DarkToggle() {
       }}
     />
   );
-}
-
-function AnswerBlockRenderer({ block }: { block: AnswerBlock }) {
-  if (block.type === "h") {
-    return (
-      <div className="g-up font-display text-[25px] text-g-prim mt-[22px] mb-[2px] leading-[1.05]">
-        {block.text}
-      </div>
-    );
-  }
-
-  if (block.type === "lead") {
-    return (
-      <p
-        className="g-up font-body text-[15.5px] leading-[1.6] text-g-ink"
-        dangerouslySetInnerHTML={{ __html: mdInline(block.md || "") }}
-      />
-    );
-  }
-
-  if (block.type === "p") {
-    return (
-      <p
-        className="g-up font-body text-[15px] leading-[1.6] text-g-sub mt-[11px]"
-        dangerouslySetInnerHTML={{ __html: mdInline(block.md || "") }}
-      />
-    );
-  }
-
-  if (block.type === "ol" && block.items) {
-    return (
-      <ol className="g-up list-none m-0 mt-[14px] p-0 flex flex-col gap-[11px]">
-        {block.items.map((item, j) => (
-          <li key={j} className="flex gap-[13px]">
-            <span className="font-display text-[26px] text-g-honey leading-[0.9] shrink-0 w-[22px]">
-              {j + 1}
-            </span>
-            <span
-              className="font-body text-[15px] leading-[1.5] text-g-ink pt-[2px]"
-              dangerouslySetInnerHTML={{ __html: mdInline(item) }}
-            />
-          </li>
-        ))}
-      </ol>
-    );
-  }
-
-  if (block.type === "ul" && block.items) {
-    return (
-      <ul className="g-up list-none m-0 mt-[14px] p-0 flex flex-col gap-[9px]">
-        {block.items.map((item, j) => (
-          <li key={j} className="flex gap-[10px]">
-            <span className="text-g-prim shrink-0 mt-[7px] w-[6px] h-[6px] rounded-full bg-g-prim" />
-            <span
-              className="font-body text-[15px] leading-[1.5] text-g-ink"
-              dangerouslySetInnerHTML={{ __html: mdInline(item) }}
-            />
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (block.type === "video") {
-    const ytUrl = block.videoId ? `https://www.youtube.com/watch?v=${block.videoId}` : "#";
-    return (
-      <a
-        href={ytUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="g-up mt-5 rounded-[18px] overflow-hidden bg-g-panel shadow-[var(--g-shadow)] block no-underline g-tap"
-      >
-        <div
-          className="h-[140px] flex items-center justify-center relative bg-g-panel2"
-        >
-          {block.thumbnailUrl ? (
-            <img
-              src={block.thumbnailUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : null}
-          <span className="w-[52px] h-[52px] rounded-full bg-g-prim text-g-on-prim flex items-center justify-center shadow-[0_5px_14px_rgba(0,0,0,0.25)] relative z-10">
-            <Play size={22} />
-          </span>
-        </div>
-        <div className="p-4">
-          <Kicker color="var(--g-prim)" className="mb-[6px]">
-            Here&rsquo;s a video that may help
-          </Kicker>
-          <div className="font-display text-[21px] text-g-ink leading-[1.05]">{block.title}</div>
-          <div className="font-body text-[12.5px] text-g-faint mt-[5px]">
-            {block.channel}{block.dur ? ` · ${block.dur}` : ""}
-          </div>
-        </div>
-      </a>
-    );
-  }
-
-  if (block.type === "callout") {
-    return (
-      <div className="g-up mt-5 bg-g-honey-soft rounded-[18px] p-[17px]">
-        <div className="font-body text-[14.5px] leading-[1.5] text-g-ink mb-[13px]">{block.text}</div>
-        {block.resource && (
-          <a className="flex items-center gap-[11px] no-underline" href={`tel:${block.resource.tel}`}>
-            <span className="w-[42px] h-[42px] rounded-full bg-g-honey text-g-on-prim flex items-center justify-center shrink-0">
-              <Phone size={18} />
-            </span>
-            <span>
-              <span className="block font-body text-[14px] font-bold text-g-ink">{block.resource.name}</span>
-              <span className="block font-body text-[13px] text-g-sub">{block.resource.tel}</span>
-            </span>
-          </a>
-        )}
-      </div>
-    );
-  }
-
-  return null;
 }
 
 const FALLBACK_SUGGESTIONS: Record<string, string[]> = {
@@ -602,27 +489,27 @@ export default function ChatPage() {
         right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>}
       />
 
+      {getTopicById(topicId) && <TopicStrip topic={getTopicById(topicId)!} />}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-3">
         {!hasAsked ? (
           /* Empty state with suggestions */
           <div className="g-up pt-4">
-            <div className="font-display text-[36px] leading-[1.05] text-g-ink mb-3">
-              What&rsquo;s on your mind?
-            </div>
-            <div className="font-body text-[15px] leading-[1.55] text-g-sub mb-[26px]">
-              I&rsquo;ll answer from the {getTopicById(topicId)?.sources?.length || "three"} books on the shelf
-              {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.
-            </div>
+            <EmptyIntro>
+              <div className="font-display text-[38px] leading-[1.02] text-g-ink mb-3">
+                What&rsquo;s on your <em>mind</em>?
+              </div>
+              <div className="font-body text-[15px] leading-[1.55] text-g-sub mb-[26px]">
+                I&rsquo;ll answer from the {getTopicById(topicId)?.sources?.length || "three"} books on the shelf
+                {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.
+              </div>
+            </EmptyIntro>
             <Kicker className="mb-[13px]">Maybe start with</Kicker>
             <div className="flex flex-col gap-[10px]">
               {suggested.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => sendQuestion(s)}
-                  className="text-left cursor-pointer bg-g-panel border-none rounded-[16px] py-[15px] px-[17px] font-display text-[19px] text-g-ink leading-[1.15] shadow-[var(--g-shadow-sm)] g-tap"
-                >
+                <SuggestionCard key={i} onClick={() => sendQuestion(s)}>
                   {s}
-                </button>
+                </SuggestionCard>
               ))}
             </div>
           </div>
@@ -631,45 +518,27 @@ export default function ChatPage() {
             {/* Previous messages (completed pairs) */}
             {historyMessages.map((msg, i) => (
               msg.role === "user" ? (
-                <div key={i} className="flex flex-col items-end mb-[22px]">
-                  <Kicker className="mb-[6px] mr-1">{msg.user_id ? memberName(msg.user_id) || me : me}</Kicker>
-                  <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
-                    {msg.content}
-                  </div>
-                </div>
+                <UserBubble key={i} name={msg.user_id ? memberName(msg.user_id) || me : me}>
+                  {msg.content}
+                </UserBubble>
               ) : (
                 <div key={i} className="mb-[26px]">
-                  <div className="flex items-center gap-[9px] mb-[14px]">
-                    <span className="w-7 h-7 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center">
-                      <Leaf size={15} />
-                    </span>
-                    <span className="font-display text-[19px] text-g-ink">Grounded</span>
+                  <AssistantHeader />
+                  <div className="whitespace-pre-wrap">
+                    <AnswerBlocks blocks={parseAnswer(msg.content)} />
                   </div>
-                  <div className="font-body text-[15px] leading-[1.6] text-g-ink whitespace-pre-wrap">
-                    {parseAnswer(msg.content).map((block, j) => (
-                      <AnswerBlockRenderer key={j} block={block} />
-                    ))}
-                  </div>
-                  {extractSources(msg.content, topicId).length > 0 && (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {extractSources(msg.content, topicId).map((s, j) => (
-                        <span key={j} className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]">
-                          <Book size={13} />{s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <SourcesRow sources={extractSources(msg.content, topicId)} topicId={topicId} />
                   {msg.id && (
                     <div className="flex gap-[9px] mt-[14px] mb-4">
                       <button
                         onClick={() => navigator.clipboard.writeText(msg.content)}
-                        className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
+                        className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-full py-2 px-[14px] cursor-pointer shadow-[var(--g-shadow-sm)]"
                       >
                         <Copy size={14} />Copy
                       </button>
                       <button
                         onClick={() => handlePin(msg.id!, !!msg.pinned)}
-                        className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)] ${msg.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
+                        className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-full py-2 px-[14px] cursor-pointer shadow-[var(--g-shadow-sm)] ${msg.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
                       >
                         <Pin size={14} className={msg.pinned ? "fill-current" : ""} />{msg.pinned ? "Pinned" : "Pin answer"}
                       </button>
@@ -681,14 +550,7 @@ export default function ChatPage() {
                       <Kicker className="mb-[10px]">You might also ask</Kicker>
                       <div className="flex flex-col gap-[7px]">
                         {followUps.map((q, j) => (
-                          <button
-                            key={j}
-                            onClick={() => sendQuestion(q)}
-                            className="flex items-center gap-[10px] text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
-                          >
-                            <span className="flex-1">{q}</span>
-                            <ChevronRight size={15} className="shrink-0 opacity-50" />
-                          </button>
+                          <FollowUpButton key={j} onClick={() => sendQuestion(q)}>{q}</FollowUpButton>
                         ))}
                       </div>
                     </div>
@@ -700,55 +562,27 @@ export default function ChatPage() {
             {/* Current live exchange (streaming or just finished) */}
             {currentQuestion && (
               <>
-                <div className="flex flex-col items-end mb-[22px]">
-                  <Kicker className="mb-[6px] mr-1">{me}</Kicker>
-                  <div className="max-w-[86%] bg-g-prim text-g-on-prim rounded-[20px] rounded-br-[6px] py-[13px] px-[17px] font-body text-[15px] leading-[1.45]">
-                    {currentQuestion}
-                  </div>
-                </div>
+                <UserBubble name={me}>{currentQuestion}</UserBubble>
 
                 <div className="g-up">
-                  <div className="flex items-center gap-[9px] mb-[14px]">
-                    <span className="w-7 h-7 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center">
-                      <Leaf size={15} />
-                    </span>
-                    <span className="font-display text-[19px] text-g-ink">Grounded</span>
-                    {streaming && (
-                      <span className="flex gap-[3px] ml-[2px]">
-                        {[0, 1, 2].map((i) => (
-                          <span key={i} className="g-dot" style={{ background: "var(--g-prim)", animationDelay: `${i * 0.16}s` }} />
-                        ))}
-                      </span>
-                    )}
-                  </div>
+                  <AssistantHeader />
+
+                  {streaming && !leadText && <ThinkingIndicator />}
 
                   {(leadText || (done && blocks.length > 0)) && (
-                    <div className="font-body text-[15px] leading-[1.6] text-g-ink">
-                      {(done ? blocks : parseAnswer(leadText)).map((block, i) => (
-                        <AnswerBlockRenderer key={i} block={block} />
-                      ))}
-                      {streaming && <span className="g-caret" style={{ background: "var(--g-prim)" }} />}
-                    </div>
+                    <AnswerBlocks blocks={done ? blocks : parseAnswer(leadText)} caret={streaming} />
                   )}
 
                   {done && (
                     <>
-                      {sources.length > 0 && (
-                        <div className="mt-5 flex flex-wrap gap-2">
-                          {sources.map((s, i) => (
-                            <span key={i} className="flex items-center gap-[6px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel rounded-[10px] py-[7px] px-3 shadow-[var(--g-shadow-sm)]">
-                              <Book size={13} />{s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <SourcesRow sources={sources} topicId={topicId} />
                       <div className="flex gap-[9px] mt-[14px] mb-4">
                         <button
                           onClick={() => {
                             const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
                             if (lastAssistant) navigator.clipboard.writeText(lastAssistant.content);
                           }}
-                          className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)]"
+                          className="flex items-center gap-[5px] font-body text-[12.5px] font-semibold text-g-sub bg-g-panel border-none rounded-full py-2 px-[14px] cursor-pointer shadow-[var(--g-shadow-sm)]"
                         >
                           <Copy size={14} />Copy
                         </button>
@@ -758,7 +592,7 @@ export default function ChatPage() {
                           return (
                             <button
                               onClick={() => handlePin(lastAssistant.id!, !!lastAssistant.pinned)}
-                              className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-[10px] py-2 px-3 cursor-pointer shadow-[var(--g-shadow-sm)] ${lastAssistant.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
+                              className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-full py-2 px-[14px] cursor-pointer shadow-[var(--g-shadow-sm)] ${lastAssistant.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
                             >
                               <Pin size={14} className={lastAssistant.pinned ? "fill-current" : ""} />{lastAssistant.pinned ? "Pinned" : "Pin answer"}
                             </button>
@@ -770,14 +604,7 @@ export default function ChatPage() {
                           <Kicker className="mb-[10px]">You might also ask</Kicker>
                           <div className="flex flex-col gap-[7px]">
                             {followUps.map((q, i) => (
-                              <button
-                                key={i}
-                                onClick={() => sendQuestion(q)}
-                                className="flex items-center gap-[10px] text-left font-body text-[13.5px] text-g-prim bg-g-prim-soft border-none rounded-[12px] py-[10px] px-[14px] cursor-pointer leading-[1.4]"
-                              >
-                                <span className="flex-1">{q}</span>
-                                <ChevronRight size={15} className="shrink-0 opacity-50" />
-                              </button>
+                              <FollowUpButton key={i} onClick={() => sendQuestion(q)}>{q}</FollowUpButton>
                             ))}
                           </div>
                         </div>
@@ -825,7 +652,7 @@ export default function ChatPage() {
         className="shrink-0 bg-g-bg relative -mt-px"
         style={{ padding: `11px 18px max(env(safe-area-inset-bottom, 0px) + 8px, 16px)` }}
       >
-        <div className="flex items-end gap-[9px] bg-g-panel rounded-[26px] py-[7px] pl-[18px] pr-[7px] shadow-[var(--g-shadow)]">
+        <div className="flex items-end gap-[9px] bg-g-panel rounded-full py-[7px] pl-[22px] pr-[7px] shadow-[var(--g-shadow)] border border-g-line">
           <textarea
             ref={inputRef}
             value={input}

@@ -101,7 +101,7 @@ function Chart({
     .filter((_, i) => i % 5 === 0 || i === days.length - 1);
 
   return (
-    <div className="bg-g-panel rounded-[16px] p-4 shadow-[var(--g-shadow-sm)] overflow-hidden">
+    <div className="bg-g-panel rounded-[22px] p-4 shadow-[var(--g-shadow-sm)] overflow-hidden">
       <div className="flex items-center gap-4 mb-3">
         <div className="flex items-center gap-[6px]">
           <span className="w-[10px] h-[10px] rounded-[2px]" style={{ background: "var(--g-prim)", opacity: 0.5 }} />
@@ -298,11 +298,11 @@ export default function AdminPage() {
 
         {/* 30-day summary */}
         <div className="grid grid-cols-2 gap-[10px] mb-6">
-          <div className="bg-g-panel rounded-[14px] p-[14px] shadow-[var(--g-shadow-sm)]">
+          <div className="bg-g-panel rounded-[22px] p-[14px] shadow-[var(--g-shadow-sm)]">
             <div className="font-body text-[11px] text-g-faint uppercase tracking-[0.5px]">New signups (30d)</div>
             <div className="font-display text-[28px] text-g-ink mt-1">{totalSignups30d}</div>
           </div>
-          <div className="bg-g-panel rounded-[14px] p-[14px] shadow-[var(--g-shadow-sm)]">
+          <div className="bg-g-panel rounded-[22px] p-[14px] shadow-[var(--g-shadow-sm)]">
             <div className="font-body text-[11px] text-g-faint uppercase tracking-[0.5px]">Conversations (30d)</div>
             <div className="font-display text-[28px] text-g-ink mt-1">{totalConvos30d}</div>
           </div>
@@ -312,7 +312,7 @@ export default function AdminPage() {
         {stats.topUsers.length > 0 && (
           <>
             <Kicker className="mb-3">Top users</Kicker>
-            <div className="bg-g-panel rounded-[16px] shadow-[var(--g-shadow-sm)] overflow-hidden mb-3">
+            <div className="bg-g-panel rounded-[22px] shadow-[var(--g-shadow-sm)] overflow-hidden mb-3">
               {(showAllUsers ? stats.topUsers : stats.topUsers.slice(0, 5)).map((u, i) => (
                 <div
                   key={i}
@@ -355,7 +355,7 @@ export default function AdminPage() {
         {stats.topicPopularity.length > 0 && (
           <>
             <Kicker className="mb-3">Topic popularity</Kicker>
-            <div className="bg-g-panel rounded-[16px] shadow-[var(--g-shadow-sm)] p-4 mb-6">
+            <div className="bg-g-panel rounded-[22px] shadow-[var(--g-shadow-sm)] p-4 mb-6">
               {stats.topicPopularity.map((t, i) => {
                 const max = stats.topicPopularity[0].count || 1;
                 const pct = Math.max(4, Math.round((t.count / max) * 100));
@@ -412,7 +412,7 @@ function StatCard({
   subLabel?: string;
 }) {
   return (
-    <div className="bg-g-panel rounded-[14px] p-[14px] shadow-[var(--g-shadow-sm)] flex flex-col items-center text-center">
+    <div className="bg-g-panel rounded-[22px] p-[14px] shadow-[var(--g-shadow-sm)] flex flex-col items-center text-center">
       <span className="w-[32px] h-[32px] rounded-full bg-g-prim-soft text-g-prim flex items-center justify-center mb-[8px]">
         <Icon size={16} />
       </span>

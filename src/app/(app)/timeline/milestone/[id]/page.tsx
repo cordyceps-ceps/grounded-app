@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Clock, Leaf } from "lucide-react";
 import { TopBar, Kicker, Cover, Button } from "@/components/ui";
+import { SpotTimeline } from "@/components/illustrations";
 import { useUser } from "@/components/UserProvider";
 import { findMilestone, WBW_BOOK, MS_CATS } from "@/lib/milestones";
 
@@ -37,16 +38,17 @@ export default function MilestoneDetailPage() {
       <TopBar onBack={() => startTransition(() => router.push("/timeline"))} title={period.label} />
 
       <div className="flex-1 overflow-y-auto" style={{ padding: "2px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)" }}>
-        <div className="g-up">
+        <div className="g-up relative overflow-hidden rounded-[28px] mb-6" style={{ background: "var(--g-t-sage)", padding: "20px 22px 22px", minHeight: 176 }}>
+          <SpotTimeline className="absolute -right-6 -bottom-4 w-[150px] h-auto" />
           <span
-            className="inline-flex items-center gap-[5px] rounded-[8px] py-[5px] px-[9px] font-body text-[11.5px] font-bold tracking-[0.4px] uppercase mb-3"
+            className="inline-flex items-center gap-[5px] rounded-full py-[5px] px-[11px] font-body text-[11.5px] font-bold tracking-[0.4px] uppercase mb-3 relative"
             style={{ background: cat.soft, color: cat.fg }}
           >
             <CatIcon size={12} />
             {cat.label}
           </span>
-          <div className="font-display text-[36px] leading-[1.03] text-g-ink mb-[10px]">{milestone.title}</div>
-          <div className="inline-flex items-center gap-[7px] bg-g-panel2 rounded-[10px] py-2 px-3 mb-6">
+          <div className="relative max-w-[68%] font-display text-[34px] leading-[1.03] text-g-ink mb-[12px]">{milestone.title}</div>
+          <div className="relative inline-flex items-center gap-[7px] bg-g-panel rounded-full py-2 px-[14px]">
             <span className="text-g-faint flex"><Clock size={15} /></span>
             <span className="font-body text-[13px] font-semibold text-g-ink">Usually {milestone.range}</span>
           </div>
@@ -64,22 +66,22 @@ export default function MilestoneDetailPage() {
           </div>
         </div>
 
-        <div className="g-up bg-g-panel rounded-[18px] p-[18px] shadow-[var(--g-shadow-sm)] mb-5">
+        <div className="g-up bg-g-panel rounded-[26px] p-[20px] shadow-[var(--g-shadow-sm)] mb-5">
           <div className="flex items-center gap-[10px] mb-3">
-            <Cover spine={WBW_BOOK.spine} w={26} h={36} />
+            <Cover spine={WBW_BOOK.spine} w={34} h={48} />
             <span className="min-w-0">
               <Kicker color="var(--g-prim)">From the book</Kicker>
               <span className="block font-body text-[12.5px] text-g-faint mt-[3px]">{WBW_BOOK.title}</span>
             </span>
           </div>
-          <div className="font-display text-[19px] leading-[1.45] text-g-ink">{milestone.excerpt}</div>
+          <div className="font-display text-[20px] leading-[1.42] text-g-ink pl-[14px] border-l-2 border-g-clay">{milestone.excerpt}</div>
         </div>
 
         <div className="g-up mb-[22px]">
           <Button full arrow onClick={askAbout}>Ask Grounded about this</Button>
         </div>
 
-        <div className="g-up bg-g-honey-soft rounded-[16px] p-4 flex gap-[11px]">
+        <div className="g-up bg-g-honey-soft rounded-[22px] p-[18px] flex gap-[11px]">
           <span className="text-g-honey shrink-0" style={{ marginTop: 1 }}><Leaf size={18} /></span>
           <div className="font-body text-[13.5px] leading-[1.5] text-g-ink">
             These are ranges, not deadlines. Every baby arrives at things in their own order and their own time — if something&rsquo;s worrying you, your health visitor or GP is the right person to ask.

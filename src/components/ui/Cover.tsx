@@ -95,8 +95,12 @@ export function Cover({ spine, title, w = 40, h = 54 }: CoverProps) {
           className="absolute left-0 right-0 top-0 font-display leading-[1.02] text-left"
           style={{
             padding: `${Math.round(w * 0.14)}px ${Math.round(w * 0.1)}px 0 ${Math.round(w * 0.2)}px`,
-            fontSize: Math.max(9, Math.round(w * 0.17)),
+            fontSize: Math.max(9, Math.round(w * 0.145)),
             color: "oklch(0.97 0.012 88)",
+            display: "-webkit-box",
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
           }}
         >
           {title}
@@ -105,7 +109,7 @@ export function Cover({ spine, title, w = 40, h = 54 }: CoverProps) {
       <svg
         viewBox="0 0 40 54"
         width="100%"
-        height="62%"
+        height={showTitle ? "50%" : "62%"}
         preserveAspectRatio="xMidYMax meet"
         aria-hidden="true"
         focusable="false"

@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, X, Share, BarChart3 } from "lucide-react";
-import { TopBar, Kicker, IconBtn, Avatar } from "@/components/ui";
+import { Sun, Moon, ChevronRight, ChevronDown, ChevronUp, Download, X, Share, BarChart3 } from "lucide-react";
+import { TopBar, Kicker, IconBtn, Avatar, TopicTile } from "@/components/ui";
+import { SpotConversations } from "@/components/illustrations";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { TimelineHomeCard } from "@/components/TimelineHomeCard";
@@ -24,48 +25,6 @@ function DarkToggle() {
         else setMode("night");
       }}
     />
-  );
-}
-
-function TopicCard({ topic }: { topic: (typeof TOPICS)[0] }) {
-  return (
-    <Link
-      href={`/topic/${topic.id}`}
-      prefetch
-      className="g-up g-tap w-full text-left no-underline bg-g-panel rounded-[18px] p-4 shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center"
-    >
-      <span className="flex shrink-0">
-        {topic.sources.slice(0, 3).map((s, i) => (
-          <span
-            key={i}
-            className="rounded-[3px]"
-            style={{
-              width: 16,
-              height: 44,
-              background: s.spine,
-              marginLeft: i ? -7 : 0,
-              boxShadow: "inset -2px 0 0 rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.22)",
-              outline: "1.5px solid var(--g-panel)",
-            }}
-          />
-        ))}
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className="block font-display text-[23px] text-g-ink leading-[1.05]">{topic.name}</span>
-        <span className="block font-body text-[12.5px] text-g-faint mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
-          {topic.blurb}
-        </span>
-      </span>
-      {topic.ready ? (
-        <span className="text-g-faint shrink-0">
-          <ChevronRight size={16} />
-        </span>
-      ) : (
-        <span className="shrink-0 font-body text-[10.5px] font-bold tracking-[0.6px] uppercase text-g-honey bg-g-honey-soft rounded-[8px] py-[5px] px-[9px]">
-          Soon
-        </span>
-      )}
-    </Link>
   );
 }
 
@@ -115,7 +74,7 @@ function InstallBanner() {
   if (!deferredPrompt && !showIosHint) return null;
 
   return (
-    <div className="g-up bg-g-prim-soft rounded-[16px] p-4 mb-5 flex items-center gap-3">
+    <div className="g-up bg-g-prim-soft rounded-[22px] p-4 mb-5 flex items-center gap-3">
       <span className="w-10 h-10 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center shrink-0">
         <Download size={18} />
       </span>
@@ -161,6 +120,7 @@ export default function HomePage() {
     : "What\u2019s on your mind?";
 
   const topicName = (id: string) => TOPICS.find((t) => t.id === id)?.name || id;
+  const topicHue = (id: string) => TOPICS.find((t) => t.id === id)?.hue || "sage";
 
   if (!loaded) {
     return (
@@ -214,15 +174,15 @@ export default function HomePage() {
         {/* Topics */}
         <Kicker className="mb-3">Topics</Kicker>
         <div className="mb-7">
-          <div className="flex flex-col gap-[10px]">
+          <div className="grid grid-cols-2 gap-3">
             {(expanded ? topics : topics.slice(0, 4)).map((t) => (
-              <TopicCard key={t.id} topic={t} />
+              <TopicTile key={t.id} topic={t} />
             ))}
           </div>
           {topics.length > 4 && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="flex items-center justify-center gap-[7px] w-full mt-3 py-[11px] bg-transparent border-[1.5px] border-g-line rounded-[14px] cursor-pointer font-body text-[13.5px] font-bold text-g-sub"
+              className="flex items-center justify-center gap-[7px] w-full mt-3 py-[11px] bg-transparent border-[1.5px] border-g-line rounded-full cursor-pointer font-body text-[13.5px] font-bold text-g-sub"
             >
               {expanded ? "Show fewer" : `Show all ${topics.length} topics`}
               {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -232,8 +192,9 @@ export default function HomePage() {
 
         {/* Recent conversations */}
         {convos.length === 0 ? (
-          <div className="g-up bg-g-panel2 rounded-[18px] p-5 text-center">
-            <div className="font-body text-[13.5px] text-g-sub leading-[1.5] max-w-[260px] mx-auto">
+          <div className="g-up bg-g-panel rounded-[26px] pt-3 pb-6 px-5 text-center shadow-[var(--g-shadow-sm)]">
+            <SpotConversations className="w-[170px] h-auto mx-auto" />
+            <div className="font-body text-[13.5px] text-g-sub leading-[1.5] max-w-[260px] mx-auto mt-1">
               Pick a topic above to ask your first question. Quiet for now — that&rsquo;s perfectly fine.
             </div>
           </div>
@@ -246,19 +207,21 @@ export default function HomePage() {
                   key={c.id}
                   href={`/chat/${c.id}`}
                   prefetch
-                  className="g-up g-tap no-underline bg-g-panel rounded-[16px] py-[15px] px-[17px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
+                  className="g-up g-tap no-underline bg-g-panel rounded-[22px] py-[15px] pl-[14px] pr-[16px] shadow-[var(--g-shadow-sm)] flex gap-[13px] items-center"
                 >
-                  <span className="w-9 h-9 rounded-[12px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
-                    <MessageSquare size={18} />
-                  </span>
+                  <span
+                    className="w-[5px] self-stretch min-h-[34px] rounded-full shrink-0"
+                    style={{ background: `var(--g-t-${topicHue(c.topic_id)})` }}
+                  />
                   <span className="flex-1 min-w-0">
-                    <span className="block font-body text-[15px] font-semibold text-g-ink leading-[1.3]">
+                    <span className="block font-display text-[19px] text-g-ink leading-[1.15]">
                       {c.title || "Untitled conversation"}
                     </span>
-                    <span className="block font-body text-[12px] text-g-faint mt-[3px]">
+                    <span className="block font-body text-[12px] text-g-faint mt-[4px]">
                       {topicName(c.topic_id)} · {timeAgo(c.updated_at)}
                     </span>
                   </span>
+                  <span className="text-g-faint shrink-0"><ChevronRight size={15} /></span>
                 </Link>
               ))}
             </div>

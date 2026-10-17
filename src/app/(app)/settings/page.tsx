@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { TopBar, Button, Kicker, Field, Segmented, Sheet } from "@/components/ui";
 import { useUser } from "@/components/UserProvider";
+import { useTheme } from "@/components/ThemeProvider";
+import { SceneBaby } from "@/components/illustrations";
 import { createClient } from "@/lib/supabase/client";
 
 interface Member {
@@ -19,6 +21,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const { me, userId, baby, familyId, facts: allFacts, refreshFacts } = useUser();
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
   // Prefetch back navigation
   useEffect(() => { router.prefetch("/home"); }, [router]);
@@ -253,14 +256,15 @@ export default function SettingsPage() {
         style={{ padding: "6px 20px calc(env(safe-area-inset-bottom, 0px) + 14px)" }}
       >
         {/* Account */}
-        <Kicker className="mb-3 mt-2">Account</Kicker>
-        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-6">
-          <div className="flex items-center gap-3">
+        
+        <div className="bg-g-panel rounded-[24px] overflow-hidden shadow-[var(--g-shadow-sm)] mb-7 mt-2">
+          <SceneBaby className="block w-full aspect-[320/170] h-auto" />
+          <div className="flex items-center gap-3 p-[18px]">
             <span className="w-11 h-11 rounded-full bg-g-prim text-g-on-prim flex items-center justify-center font-body text-[16px] font-bold shrink-0">
               {(me || "P")[0]}
             </span>
             <div>
-              <div className="font-body text-[16px] font-semibold text-g-ink">{me}</div>
+              <div className="font-display text-[24px] leading-[1.05] text-g-ink">{me}</div>
               <div className="font-body text-[12.5px] text-g-faint">Logged in</div>
             </div>
           </div>
@@ -268,10 +272,10 @@ export default function SettingsPage() {
 
         {/* Baby profile */}
         <Kicker className="mb-3">Baby</Kicker>
-        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-6">
+        <div className="bg-g-panel rounded-[24px] p-[20px] shadow-[var(--g-shadow-sm)] mb-6">
           <div className="flex items-center gap-[10px] mb-[14px]">
             <Baby size={18} className="text-g-prim shrink-0" />
-            <span className="font-body text-[14.5px] font-semibold text-g-ink">
+            <span className="font-display text-[21px] leading-none text-g-ink">
               {baby?.name || "Baby"}&rsquo;s profile
             </span>
           </div>
@@ -362,7 +366,7 @@ export default function SettingsPage() {
 
         {/* Global facts */}
         <Kicker className="mb-3">About {baby?.name || "your baby"}</Kicker>
-        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-6">
+        <div className="bg-g-panel rounded-[24px] p-[20px] shadow-[var(--g-shadow-sm)] mb-6">
           <div className="font-body text-[13.5px] text-g-sub leading-[1.5] mb-[14px]">
             Facts here are included in every conversation across all topics.
           </div>
@@ -405,10 +409,10 @@ export default function SettingsPage() {
 
         {/* Family */}
         <Kicker className="mb-3">Family</Kicker>
-        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-4">
+        <div className="bg-g-panel rounded-[24px] p-[20px] shadow-[var(--g-shadow-sm)] mb-4">
           <div className="flex items-center gap-[10px] mb-[14px]">
             <Users size={18} className="text-g-prim shrink-0" />
-            <span className="font-body text-[14.5px] font-semibold text-g-ink">Members</span>
+            <span className="font-display text-[21px] leading-none text-g-ink">Members</span>
           </div>
           {members.length > 0 ? (
             <div className="flex flex-col gap-[10px]">
@@ -437,10 +441,10 @@ export default function SettingsPage() {
 
         {/* Invite */}
         {members.length < 2 && (
-          <div className="bg-g-prim-soft rounded-[18px] p-[17px] mb-6">
+          <div className="bg-g-prim-soft rounded-[24px] p-[20px] mb-6">
             <div className="flex items-center gap-[10px] mb-[10px]">
               <Link2 size={18} className="text-g-prim shrink-0" />
-              <span className="font-body text-[14.5px] font-semibold text-g-ink">Invite your partner</span>
+              <span className="font-display text-[21px] leading-none text-g-ink">Invite your partner</span>
             </div>
             <div className="font-body text-[13px] text-g-sub leading-[1.5] mb-[14px]">
               Share an invite code so they can join your family space.
@@ -490,12 +494,26 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Appearance */}
+        <Kicker className="mb-3">Appearance</Kicker>
+        <div className="bg-g-panel rounded-[24px] p-[20px] shadow-[var(--g-shadow-sm)] mb-6">
+          <Segmented
+            value={themeMode}
+            onChange={(v) => setThemeMode(v as typeof themeMode)}
+            options={[
+              { value: "auto", label: "Auto" },
+              { value: "light", label: "Light" },
+              { value: "night", label: "Night" },
+            ]}
+          />
+        </div>
+
         {/* Claude connector */}
         <Kicker className="mb-3">Claude connector</Kicker>
-        <div className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] mb-6">
+        <div className="bg-g-panel rounded-[24px] p-[20px] shadow-[var(--g-shadow-sm)] mb-6">
           <div className="flex items-center gap-[10px] mb-[10px]">
             <Plug size={18} className="text-g-prim shrink-0" />
-            <span className="font-body text-[14.5px] font-semibold text-g-ink">
+            <span className="font-display text-[21px] leading-none text-g-ink">
               Ask Grounded from Claude
             </span>
           </div>
@@ -538,7 +556,7 @@ export default function SettingsPage() {
               <button
                 onClick={revokeMcpToken}
                 disabled={mcpRevoking}
-                className="w-full flex items-center justify-center gap-2 font-body text-[13px] font-semibold text-red-500 bg-transparent border-[1.5px] border-red-200 rounded-[12px] py-[10px] cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 font-body text-[13px] font-semibold text-red-500 bg-transparent border-[1.5px] border-red-500/30 rounded-[12px] py-[10px] cursor-pointer"
               >
                 {mcpRevoking ? "Revoking\u2026" : "Revoke connector"}
               </button>
@@ -560,7 +578,7 @@ export default function SettingsPage() {
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center justify-center gap-2 font-body text-[14px] font-semibold text-red-500 bg-transparent border-[1.5px] border-red-200 rounded-[14px] py-[13px] cursor-pointer mb-4"
+          className="w-full flex items-center justify-center gap-2 font-body text-[14px] font-semibold text-red-500 bg-transparent border-[1.5px] border-red-500/30 rounded-[14px] py-[13px] cursor-pointer mb-4"
         >
           <LogOut size={16} />
           {loggingOut ? "Logging out\u2026" : "Log out"}

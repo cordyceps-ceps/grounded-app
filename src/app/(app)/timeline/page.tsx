@@ -4,6 +4,7 @@ import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sun, Moon, Check, ChevronRight } from "lucide-react";
 import { TopBar, Kicker, Cover, IconBtn, Avatar } from "@/components/ui";
+import { SpotTimeline } from "@/components/illustrations";
 import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { PERIODS, WBW_BOOK, MS_CATS, getCurrentPeriod } from "@/lib/milestones";
@@ -48,18 +49,27 @@ export default function TimelinePage() {
       />
 
       <div ref={scrollerRef} className="flex-1 overflow-y-auto" style={{ padding: "2px 20px calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
-        <div className="g-up pb-[18px]">
-          <div className="font-display text-[34px] leading-[1.04] text-g-ink mb-2">
-            {baby?.name ? `${baby.name}\u2019s weeks, one by one` : "Week by week"}
+        <div className="g-up pb-[22px]">
+          <div
+            className="relative overflow-hidden rounded-[28px] text-g-ink"
+            style={{ background: "var(--g-t-sage)", padding: "22px 22px 20px", minHeight: 170 }}
+          >
+            <div className="relative z-10 max-w-[64%]">
+              <div className="font-body text-[11px] font-bold tracking-[1px] uppercase opacity-65 mb-[10px]">Week by week</div>
+              <div className="font-display text-[32px] leading-[1.03] mb-2">
+                {baby?.name ? <>{baby.name}&rsquo;s weeks, <span className="italic text-g-prim">one by one</span></> : "Week by week"}
+              </div>
+              <div className="font-body text-[13px] opacity-80 leading-[1.45]">
+                {baby?.age ? `${baby.name} is ${baby.age} old. Scroll back for what\u2019s been, forward for what\u2019s coming.` : "Scroll back for what\u2019s been, forward for what\u2019s coming."}
+              </div>
+            </div>
+            <SpotTimeline className="absolute -right-5 -bottom-3 w-[170px] h-auto" />
           </div>
-          <div className="font-body text-[14px] text-g-sub leading-[1.5]">
-            {baby?.age ? `${baby.name} is ${baby.age} old. Scroll back for what\u2019s been, forward for what\u2019s coming.` : "Scroll back for what\u2019s been, forward for what\u2019s coming."}
-          </div>
-          <div className="flex items-center gap-2 mt-[14px] bg-g-panel rounded-[12px] py-[10px] px-3 shadow-[var(--g-shadow-sm)]">
-            <Cover spine={WBW_BOOK.spine} w={20} h={28} />
+          <div className="flex items-center gap-3 mt-3 bg-g-panel rounded-[22px] py-[12px] px-[14px] shadow-[var(--g-shadow-sm)]">
+            <Cover spine={WBW_BOOK.spine} w={34} h={48} />
             <span className="flex-1 min-w-0">
-              <span className="block font-body text-[12.5px] font-bold text-g-ink whitespace-nowrap overflow-hidden text-ellipsis">{WBW_BOOK.title}</span>
-              <span className="block font-body text-[11.5px] text-g-faint">{WBW_BOOK.author}</span>
+              <span className="block font-display text-[18px] leading-[1.1] text-g-ink whitespace-nowrap overflow-hidden text-ellipsis">{WBW_BOOK.title}</span>
+              <span className="block font-body text-[12px] text-g-faint mt-[2px]">{WBW_BOOK.author}</span>
             </span>
           </div>
         </div>
@@ -78,18 +88,18 @@ export default function TimelinePage() {
                     top: isCur ? 3 : 6,
                     width: isCur ? 20 : 14,
                     height: isCur ? 20 : 14,
-                    background: isCur ? "var(--g-prim)" : isPast ? "var(--g-line)" : "var(--g-bg)",
-                    border: isCur ? "none" : "2px solid var(--g-line)",
+                    background: isCur ? "var(--g-prim)" : isPast ? "var(--g-t-sage)" : "var(--g-bg)",
+                    border: isCur ? "none" : isPast ? "2px solid var(--g-t-sage)" : "2px solid var(--g-line)",
                     boxShadow: isCur ? "0 0 0 4px var(--g-prim-soft)" : "none",
                   }}
                 >
                   {isCur && <Check size={11} />}
                 </span>
                 <div className="flex items-baseline gap-[9px] mb-[9px]" style={{ minHeight: 22 }}>
-                  <span className="font-display text-[22px] leading-none" style={{ color: isCur ? "var(--g-prim)" : "var(--g-ink)" }}>{p.label}</span>
+                  <span className="font-display text-[24px] leading-none" style={{ color: isCur ? "var(--g-prim)" : "var(--g-ink)" }}>{p.label}</span>
                   <span className="font-body text-[12px] text-g-faint">{p.sub}</span>
                   {isCur && (
-                    <span className="font-body text-[10px] font-bold tracking-[0.6px] uppercase text-g-on-prim bg-g-prim rounded-[7px] py-[3px] px-[7px]">
+                    <span className="font-body text-[10px] font-bold tracking-[0.6px] uppercase text-g-on-prim bg-g-prim rounded-full py-[3px] px-[9px]">
                       Now
                     </span>
                   )}
@@ -102,11 +112,11 @@ export default function TimelinePage() {
                       <button
                         key={it.id}
                         onClick={() => startTransition(() => router.push(`/timeline/milestone/${it.id}`))}
-                        className="w-full text-left cursor-pointer bg-g-panel rounded-[14px] py-[13px] px-[14px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
+                        className="w-full text-left cursor-pointer bg-g-panel rounded-[22px] py-[13px] px-[14px] shadow-[var(--g-shadow-sm)] flex gap-3 items-center"
                         style={isCur ? { border: "1.5px solid var(--g-prim-soft)" } : { border: "none" }}
                       >
                         <span
-                          className="rounded-[11px] flex items-center justify-center shrink-0"
+                          className="rounded-full flex items-center justify-center shrink-0"
                           style={{ width: 34, height: 34, background: cat.soft, color: cat.fg }}
                         >
                           <Icon size={17} />
