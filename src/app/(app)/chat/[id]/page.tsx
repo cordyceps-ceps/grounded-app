@@ -409,14 +409,16 @@ export default function ChatPage() {
             const trimmed = line.trim();
             if (trimmed === "data: [DONE]") continue;
             if (!trimmed.startsWith("data: ")) continue;
+            let parsed: { text?: string; error?: string } | null = null;
             try {
-              const parsed = JSON.parse(trimmed.slice(6));
-              if (parsed.text) {
-                fullText += parsed.text;
-                setLeadText(fullText);
-              }
+              parsed = JSON.parse(trimmed.slice(6));
             } catch {
               // skip malformed
+            }
+            if (parsed?.error) throw new Error(parsed.error);
+            if (parsed?.text) {
+              fullText += parsed.text;
+              setLeadText(fullText);
             }
           }
         }
