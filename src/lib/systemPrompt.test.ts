@@ -89,3 +89,32 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("According to");
   });
 });
+
+describe("buildSystemPrompt (all topics)", () => {
+  const prompt = buildSystemPrompt("all", undefined, ["[Sleep] Naps in the pram"], ["Born at 38 weeks"]);
+
+  it("lists books from every searchable topic, grouped", () => {
+    expect(prompt).toContain("Breastfeeding:");
+    expect(prompt).toContain("Sleep:");
+    expect(prompt).toContain("Kathleen Huggins");
+    expect(prompt).toContain("Marc Weissbluth");
+  });
+
+  it("excludes hidden topics", () => {
+    expect(prompt).not.toContain("WEEK-BY-WEEK GUIDANCE");
+    expect(prompt).not.toContain("Week by week:");
+  });
+
+  it("keeps per-topic guidance such as the sleep philosophies rule", () => {
+    expect(prompt).toContain("SLEEP-SPECIFIC GUIDANCE");
+  });
+
+  it("carries topic-labelled and general facts", () => {
+    expect(prompt).toContain("[Sleep] Naps in the pram");
+    expect(prompt).toContain("Born at 38 weeks (general)");
+  });
+
+  it("asks for short answers and no topic redirect", () => {
+    expect(prompt).toContain("under 250 words");
+  });
+});

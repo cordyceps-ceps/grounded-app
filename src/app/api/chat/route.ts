@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
-import { getTopicById } from "@/lib/topics";
+import { getTopicById, isAllTopic, searchableTopics } from "@/lib/topics";
 import { buildSystemPrompt } from "@/lib/systemPrompt";
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -52,6 +52,7 @@ interface ChunkResult {
   content: string;
   book_title: string;
   book_author: string;
+  topic_name?: string;
 }
 
 /** Original AND-based keyword search */
@@ -152,12 +153,12 @@ async function searchBroad(terms: string[], topicId: string, limit = 15): Promis
  * Use Haiku to re-rank chunks by relevance to the question.
  * Returns the indices of the most relevant chunks, ordered by relevance.
  */
-async function rerankChunks(question: string, chunks: ChunkResult[], topicName: string): Promise<ChunkResult[]> {
-  if (chunks.length <= 8) return chunks;
+async function rerankChunks(question: string, chunks: ChunkResult[], topicName: string, keep = 8): Promise<ChunkResult[]> {
+  if (chunks.length <= keep) return chunks;
 
   try {
     const chunkSummaries = chunks.map((c, i) =>
-      `[${i}] ${c.content.slice(0, 300)}`
+      `[${i}]${c.topic_name ? ` (${c.topic_name})` : ""} ${c.content.slice(0, 300)}`
     ).join("\n\n");
 
     const response = await anthropic.messages.create({
@@ -167,7 +168,7 @@ async function rerankChunks(question: string, chunks: ChunkResult[], topicName: 
         role: "user",
         content: `A parent asked: "${question}"
 
-Below are passage previews from ${topicName} books. Return the indices of the 8 MOST relevant passages for answering this question, ordered by relevance.
+Below are passage previews from ${topicName} books. Return the indices of the ${keep} MOST relevant passages for answering this question, ordered by relevance.
 
 ${chunkSummaries}
 
@@ -182,9 +183,9 @@ Return ONLY a JSON array of indices. Example: [3, 0, 7, 1, 5, 2, 4, 6]`,
       .filter((i) => i >= 0 && i < chunks.length)
       .map((i) => chunks[i]);
 
-    return reranked.length > 0 ? reranked.slice(0, 8) : chunks.slice(0, 8);
+    return reranked.length > 0 ? reranked.slice(0, keep) : chunks.slice(0, keep);
   } catch {
-    return chunks.slice(0, 8);
+    return chunks.slice(0, keep);
   }
 }
 
@@ -193,8 +194,9 @@ export async function POST(request: Request) {
   const { message, baby, facts, globalFacts, history, conversationId, userId, topicId } = body;
 
   const effectiveTopicId = topicId || "bf";
-  const topic = getTopicById(effectiveTopicId);
-  const topicName = topic?.name?.toLowerCase() || "parenting";
+  const all = isAllTopic(effectiveTopicId);
+  const topic = all ? undefined : getTopicById(effectiveTopicId);
+  const topicName = all ? "parenting" : topic?.name?.toLowerCase() || "parenting";
 
   if (!message || typeof message !== "string") {
     return new Response(JSON.stringify({ error: "Message is required" }), {
@@ -203,44 +205,62 @@ export async function POST(request: Request) {
     });
   }
 
-  // Step 1: Semantic search + keyword expansion in parallel
-  const [semanticResult, expandedTerms, keywordResults] = await Promise.all([
-    searchSemantic(message, effectiveTopicId, 10),
+  // "All" searches every searchable topic; a single topic searches just itself.
+  const searchTopics = all
+    ? searchableTopics().map((t) => ({ id: t.id, name: t.name }))
+    : [{ id: effectiveTopicId, name: topic?.name || "" }];
+
+  // Step 1: one embedding + keyword expansion, shared by every topic searched
+  const [queryEmbedding, expandedTerms] = await Promise.all([
+    getEmbedding(message),
     expandQuery(message, topicName),
-    searchKeyword(message, effectiveTopicId, 8),
-  ]);
-  const { chunks: semanticResults, embedding: queryEmbedding } = semanticResult;
-
-  // Step 1b: Video search in parallel (uses same embedding)
-  const videoPromise = queryEmbedding
-    ? searchVideos(queryEmbedding, effectiveTopicId)
-    : Promise.resolve(null);
-
-  // Step 2: Broad OR search with expanded terms (only if semantic didn't find enough)
-  const [broadResults, videoMatch] = await Promise.all([
-    semanticResults.length >= 8 ? Promise.resolve([]) : searchBroad(expandedTerms, effectiveTopicId, 15),
-    videoPromise,
   ]);
 
-  // Step 3: Merge and deduplicate — semantic results first (highest quality)
+  // Step 2: per topic, semantic + keyword (+ broad fallback) + video search in parallel
+  const perTopic = await Promise.all(
+    searchTopics.map(async (t) => {
+      const [semantic, keyword, video] = await Promise.all([
+        searchSemantic(message, t.id, 10, queryEmbedding ?? undefined),
+        searchKeyword(message, t.id, 8),
+        queryEmbedding ? searchVideos(queryEmbedding, t.id) : Promise.resolve(null),
+      ]);
+      const broad = semantic.chunks.length >= 8 ? [] : await searchBroad(expandedTerms, t.id, 15);
+      const tag = (c: ChunkResult) => (all ? { ...c, topic_name: t.name } : c);
+      return { chunks: [...semantic.chunks, ...keyword, ...broad].map(tag), video };
+    })
+  );
+
+  // Step 3: merge and deduplicate. Within a topic, semantic results come first (highest quality).
+  // Across topics, interleave so no single topic crowds out the others before re-ranking.
   const seen = new Set<number>();
   const allChunks: ChunkResult[] = [];
-  for (const chunk of [...semanticResults, ...keywordResults, ...broadResults]) {
-    if (!seen.has(chunk.id)) {
-      seen.add(chunk.id);
-      allChunks.push(chunk);
+  const longest = Math.max(...perTopic.map((p) => p.chunks.length), 0);
+  for (let i = 0; i < longest; i++) {
+    for (const p of perTopic) {
+      const chunk = p.chunks[i];
+      if (chunk && !seen.has(chunk.id)) {
+        seen.add(chunk.id);
+        allChunks.push(chunk);
+      }
     }
   }
 
+  // Best video across topics (single-topic: just that topic's match)
+  const videoMatch =
+    perTopic
+      .map((p) => p.video)
+      .filter((v): v is VideoResult => !!v)
+      .sort((a, b) => b.similarity - a.similarity)[0] || null;
+
   // Step 4: Re-rank with Haiku if we have too many candidates
-  const chunks = await rerankChunks(message, allChunks, topicName);
+  const chunks = await rerankChunks(message, allChunks, topicName, all ? 10 : 8);
 
   const contextBlock =
     chunks.length > 0
       ? chunks
           .map(
             (c) =>
-              `[Source: ${c.book_title} by ${c.book_author}]\n${c.content}`
+              `[Source: ${c.book_title} by ${c.book_author}${c.topic_name ? ` (topic: ${c.topic_name})` : ""}]\n${c.content}`
           )
           .join("\n\n---\n\n")
       : "No relevant passages found in the source books.";

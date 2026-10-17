@@ -136,4 +136,37 @@ describe("POST /api/chat", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
   });
+
+  describe("topicId 'all'", () => {
+    const run = async () => {
+      const req = new Request("http://localhost/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "Why is she waking at night?", topicId: "all" }),
+      });
+      const res = await POST(req);
+      await res.text();
+      return res;
+    };
+
+    it("searches every searchable topic, and never hidden ones", async () => {
+      const res = await run();
+      expect(res.status).toBe(200);
+      const searched = new Set(
+        mockRpc.mock.calls
+          .filter(([name]) => name === "match_chunks_semantic")
+          .map(([, args]) => args.topic)
+      );
+      expect(searched).toEqual(new Set(["bf", "sleep", "develop"]));
+    });
+
+    it("reuses one embedding for all topics", async () => {
+      await run();
+      const embeddings = new Set(
+        mockRpc.mock.calls
+          .filter(([name]) => name === "match_chunks_semantic")
+          .map(([, args]) => args.query_embedding)
+      );
+      expect(embeddings.size).toBe(1);
+    });
+  });
 });

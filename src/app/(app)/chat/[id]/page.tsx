@@ -8,12 +8,13 @@ import { useTheme } from "@/components/ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/components/UserProvider";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
-import { getTopicById } from "@/lib/topics";
+import { getTopicById, isAllTopic, type Topic } from "@/lib/topics";
 import { parseAnswer, extractSources, type AnswerBlock } from "@/lib/parseAnswer";
 import { AnswerBlocks } from "@/components/answer/AnswerBlocks";
 import { SourcesRow } from "@/components/answer/SourcesRow";
+import { SearchedLine, GoDeeper, NotesInUse } from "@/components/answer/AllExtras";
 import {
-  TopicStrip, UserBubble, AssistantHeader, ThinkingIndicator,
+  TopicStrip, AllStrip, UserBubble, AssistantHeader, ThinkingIndicator,
   SuggestionCard, EmptyIntro, FollowUpButton,
 } from "@/components/answer/ChatParts";
 
@@ -59,6 +60,11 @@ const FALLBACK_SUGGESTIONS: Record<string, string[]> = {
     "How do I start a gentle bedtime routine?",
   ],
 };
+const ALL_FALLBACK = [
+  "Is it normal for her to feed this often at night?",
+  "How long should naps be at this age?",
+  "What can I do about the evening fussiness?",
+];
 const DEFAULT_FALLBACK = [
   "What\u2019s normal at this age?",
   "Any tips for getting into a routine?",
@@ -100,7 +106,7 @@ export default function ChatPage() {
   // Prefetch back targets
   useEffect(() => {
     router.prefetch("/home");
-    router.prefetch(`/topic/${topicId}`);
+    if (!isAllTopic(topicId)) router.prefetch(`/topic/${topicId}`);
   }, [router, topicId]);
 
   // Load existing conversation only
@@ -143,10 +149,12 @@ export default function ChatPage() {
   const cached = suggestions[topicId];
   const STALE_MS = 24 * 60 * 60 * 1000;
   const isCacheStale = !cached || (Date.now() - new Date(cached.created_at).getTime() > STALE_MS);
-  const suggested = cached?.questions?.length ? cached.questions : (FALLBACK_SUGGESTIONS[topicId] || DEFAULT_FALLBACK);
+  const suggested = isAllTopic(topicId)
+    ? ALL_FALLBACK
+    : cached?.questions?.length ? cached.questions : (FALLBACK_SUGGESTIONS[topicId] || DEFAULT_FALLBACK);
 
   useEffect(() => {
-    if (loaded && isNew && isCacheStale && familyId) {
+    if (loaded && isNew && isCacheStale && familyId && !isAllTopic(topicId)) {
       refreshSuggestions(topicId);
     }
   }, [loaded, isNew, topicId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -247,9 +255,14 @@ export default function ChatPage() {
       }
 
       try {
-        const topicFacts = allFacts
-          .filter((f) => f.topic_id === topicId)
-          .map((f) => f.content);
+        // "All" carries every topic's notes, labelled so the model knows which area each belongs to
+        const topicFacts = isAllTopic(topicId)
+          ? allFacts
+              .filter((f) => f.topic_id)
+              .map((f) => `[${getTopicById(f.topic_id!)?.name || f.topic_id}] ${f.content}`)
+          : allFacts
+              .filter((f) => f.topic_id === topicId)
+              .map((f) => f.content);
         const globalFacts = allFacts
           .filter((f) => !f.topic_id)
           .map((f) => f.content);
@@ -329,7 +342,7 @@ export default function ChatPage() {
         setSources(extractSources(fullText, topicId));
         setDone(true);
         refreshConvos();
-        refreshSuggestions(topicId);
+        if (!isAllTopic(topicId)) refreshSuggestions(topicId);
 
         // Generate follow-up questions (non-blocking)
         fetch("/api/followups", {
@@ -450,6 +463,11 @@ export default function ChatPage() {
 
   const hasAsked = messages.length > 0;
 
+  const goDeeper = (topic: Topic, question: string) =>
+    startTransition(() => router.push(`/chat/new?topic=${topic.id}&prefill=${encodeURIComponent(question)}`));
+  const questionBefore = (index: number) =>
+    messages.slice(0, index).filter((m) => m.role === "user").pop()?.content || "";
+
   // Conversation age nudge: show after 10+ user messages
   const userMessageCount = messages.filter((m) => m.role === "user").length;
   const NUDGE_THRESHOLD = 10;
@@ -484,12 +502,19 @@ export default function ChatPage() {
   return (
     <div className="fixed inset-0 bg-g-bg flex flex-col">
       <TopBar
-        onBack={() => startTransition(() => router.push(hasAsked ? `/topic/${topicId}` : "/home"))}
-        title={hasAsked ? (getTopicById(topicId)?.name || "Grounded") : undefined}
+        onBack={() => startTransition(() => router.push(hasAsked && !isAllTopic(topicId) ? `/topic/${topicId}` : "/home"))}
+        title={hasAsked ? (isAllTopic(topicId) ? "Ask anything" : getTopicById(topicId)?.name || "Grounded") : undefined}
         right={<div className="flex gap-[9px] items-center"><DarkToggle /><Avatar /></div>}
       />
 
-      {getTopicById(topicId) && <TopicStrip topic={getTopicById(topicId)!} />}
+      {isAllTopic(topicId) ? (
+        <>
+          <AllStrip />
+          <NotesInUse notes={allFacts} babyName={baby?.name} />
+        </>
+      ) : (
+        getTopicById(topicId) && <TopicStrip topic={getTopicById(topicId)!} />
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-3">
         {!hasAsked ? (
@@ -500,8 +525,10 @@ export default function ChatPage() {
                 What&rsquo;s on your <em>mind</em>?
               </div>
               <div className="font-body text-[15px] leading-[1.55] text-g-sub mb-[26px]">
-                I&rsquo;ll answer from the {getTopicById(topicId)?.sources?.length || "three"} books on the shelf
-                {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.
+                {isAllTopic(topicId)
+                  ? <>I&rsquo;ll look across every guide for the best answer{baby ? `, with ${baby.name} in mind` : ""}. Type it, or tap the mic.</>
+                  : <>I&rsquo;ll answer from the {getTopicById(topicId)?.sources?.length || "three"} books on the shelf
+                {baby ? ` — with ${baby.name} in mind` : ""}. Type it, or tap the mic.</>}
               </div>
             </EmptyIntro>
             <Kicker className="mb-[13px]">Maybe start with</Kicker>
@@ -527,7 +554,14 @@ export default function ChatPage() {
                   <div className="whitespace-pre-wrap">
                     <AnswerBlocks blocks={parseAnswer(msg.content)} />
                   </div>
+                  {isAllTopic(topicId) && <SearchedLine sources={extractSources(msg.content, topicId)} />}
                   <SourcesRow sources={extractSources(msg.content, topicId)} topicId={topicId} />
+                  {isAllTopic(topicId) && (
+                    <GoDeeper
+                      sources={extractSources(msg.content, topicId)}
+                      onPick={(t) => goDeeper(t, questionBefore(i))}
+                    />
+                  )}
                   {msg.id && (
                     <div className="flex gap-[9px] mt-[14px] mb-4">
                       <button
@@ -536,12 +570,14 @@ export default function ChatPage() {
                       >
                         <Copy size={14} />Copy
                       </button>
+{!isAllTopic(topicId) && (
                       <button
                         onClick={() => handlePin(msg.id!, !!msg.pinned)}
                         className={`flex items-center gap-[5px] font-body text-[12.5px] font-semibold border-none rounded-full py-2 px-[14px] cursor-pointer shadow-[var(--g-shadow-sm)] ${msg.pinned ? "bg-g-prim-soft text-g-prim" : "bg-g-panel text-g-sub"}`}
                       >
                         <Pin size={14} className={msg.pinned ? "fill-current" : ""} />{msg.pinned ? "Pinned" : "Pin answer"}
                       </button>
+)}
                     </div>
                   )}
                   {/* Show follow-ups after the last assistant message */}
@@ -575,7 +611,11 @@ export default function ChatPage() {
 
                   {done && (
                     <>
+                      {isAllTopic(topicId) && <SearchedLine sources={sources} />}
                       <SourcesRow sources={sources} topicId={topicId} />
+                      {isAllTopic(topicId) && (
+                        <GoDeeper sources={sources} onPick={(t) => goDeeper(t, currentQuestion || questionBefore(messages.length))} />
+                      )}
                       <div className="flex gap-[9px] mt-[14px] mb-4">
                         <button
                           onClick={() => {
@@ -588,7 +628,7 @@ export default function ChatPage() {
                         </button>
                         {(() => {
                           const lastAssistant = messages.filter((m) => m.role === "assistant").pop();
-                          if (!lastAssistant?.id) return null;
+                          if (!lastAssistant?.id || isAllTopic(topicId)) return null;
                           return (
                             <button
                               onClick={() => handlePin(lastAssistant.id!, !!lastAssistant.pinned)}

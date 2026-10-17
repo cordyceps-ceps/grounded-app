@@ -89,3 +89,25 @@ describe("topic hues", () => {
     expect(new Set(ready).size).toBe(ready.length);
   });
 });
+
+describe("ask anything helpers", () => {
+  it("searchableTopics are ready and not hidden", async () => {
+    const { searchableTopics } = await import("./topics");
+    const ids = searchableTopics().map((t) => t.id);
+    expect(ids).toEqual(["bf", "sleep", "develop"]);
+  });
+
+  it("extractSources(all) finds authors across topics and topicsFromSources groups them", async () => {
+    const { extractSources } = await import("./parseAnswer");
+    const { topicsFromSources } = await import("./topics");
+    const text = "According to Weissbluth, naps matter. Huggins says night feeds matter. Barker agrees.";
+    const sources = extractSources(text, "all");
+    expect(sources).toEqual(expect.arrayContaining(["Marc Weissbluth", "Kathleen Huggins", "Robin Barker"]));
+    expect(topicsFromSources(sources).map((t) => t.id).sort()).toEqual(["bf", "develop", "sleep"]);
+  });
+
+  it("single-topic extractSources is unchanged by the all path", async () => {
+    const { extractSources } = await import("./parseAnswer");
+    expect(extractSources("Weissbluth and Huggins", "bf")).toEqual(["Kathleen Huggins"]);
+  });
+});

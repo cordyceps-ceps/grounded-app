@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { getTopicById, searchableTopics, type Topic } from "@/lib/topics";
-import { topicsFromSources } from "./SourcesRow";
+import { getTopicById, searchableTopics, topicsFromSources, type Topic } from "@/lib/topics";
 
 export interface NoteForAll {
   topic_id: string | null;

@@ -221,3 +221,13 @@ export function findSourceByAuthor(author: string): { topic: Topic; source: Sour
   }
   return undefined;
 }
+
+/** Topics an answer drew on, in first-cited order, from its cited author names. */
+export function topicsFromSources(sources: string[]): Topic[] {
+  const seen: Topic[] = [];
+  for (const author of sources) {
+    const hit = findSourceByAuthor(author);
+    if (hit && !seen.includes(hit.topic)) seen.push(hit.topic);
+  }
+  return seen;
+}

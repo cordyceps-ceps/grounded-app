@@ -1,5 +1,5 @@
 import { Cover } from "@/components/ui";
-import { findSourceByAuthor, getTopicById, isAllTopic, type Source, type Topic } from "@/lib/topics";
+import { findSourceByAuthor, getTopicById, isAllTopic, topicsFromSources, type Source } from "@/lib/topics";
 
 function SourceChip({ author, src }: { author: string; src?: Source }) {
   return (
@@ -15,16 +15,6 @@ function SourceChip({ author, src }: { author: string; src?: Source }) {
       </div>
     </div>
   );
-}
-
-/** Topics the answer drew on, in first-cited order, for an "all" answer. */
-export function topicsFromSources(sources: string[]): Topic[] {
-  const seen: Topic[] = [];
-  for (const author of sources) {
-    const hit = findSourceByAuthor(author);
-    if (hit && !seen.includes(hit.topic)) seen.push(hit.topic);
-  }
-  return seen;
 }
 
 /** Source attribution: small illustrated book covers with author + title. */

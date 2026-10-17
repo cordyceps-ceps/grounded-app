@@ -10,7 +10,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useUser } from "@/components/UserProvider";
 import { TimelineHomeCard } from "@/components/TimelineHomeCard";
 import { AskAnythingCard } from "@/components/AskAnythingCard";
-import { TOPICS } from "@/lib/topics";
+import { TOPICS, ALL_TOPIC_ID } from "@/lib/topics";
 import { getGreeting } from "@/lib/utils";
 import { timeAgo } from "@/lib/format";
 
@@ -120,8 +120,8 @@ export default function HomePage() {
       : `${baby.name} is on the way. What\u2019s on your mind?`
     : "What\u2019s on your mind?";
 
-  const topicName = (id: string) => TOPICS.find((t) => t.id === id)?.name || id;
-  const topicHue = (id: string) => TOPICS.find((t) => t.id === id)?.hue || "sage";
+  const topicName = (id: string) => (id === ALL_TOPIC_ID ? "Ask anything" : TOPICS.find((t) => t.id === id)?.name || id);
+  const topicHue = (id: string) => (id === ALL_TOPIC_ID ? "sage" : TOPICS.find((t) => t.id === id)?.hue || "sage");
 
   if (!loaded) {
     return (
