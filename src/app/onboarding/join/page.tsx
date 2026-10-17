@@ -2,8 +2,10 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Link2, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { TopBar, Button, Field } from "@/components/ui";
+import { SceneFrame } from "@/components/illustrations/SceneFrame";
+import { ScenePartners } from "@/components/illustrations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function JoinPage() {
@@ -75,9 +77,9 @@ function JoinInner() {
       <TopBar onBack={() => router.push("/onboarding/choose")} />
 
       <div className="flex-1 overflow-y-auto px-6 py-[6px]">
-        <div className="w-14 h-14 rounded-full bg-g-prim-soft text-g-prim flex items-center justify-center mb-[18px]">
-          <Link2 size={28} />
-        </div>
+        <SceneFrame className="g-up mb-[22px]">
+          <ScenePartners width="100%" height="100%" />
+        </SceneFrame>
 
         <div className="font-display text-[34px] leading-[1.05] text-g-ink mb-2">
           Join your partner&rsquo;s space
@@ -103,7 +105,7 @@ function JoinInner() {
           <div className="mt-3 font-body text-[13px] text-red-500">{error}</div>
         )}
 
-        <div className="mt-4 bg-g-panel rounded-[16px] p-[15px] shadow-[var(--g-shadow-sm)]">
+        <div className="mt-4 bg-g-panel rounded-[22px] p-[17px] shadow-[var(--g-shadow-sm)]">
           <div className="font-body text-[13.5px] font-bold text-g-ink mb-1">
             What happens when you join
           </div>

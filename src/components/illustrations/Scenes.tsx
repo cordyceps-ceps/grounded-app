@@ -13,6 +13,7 @@ function Scene({ children, ...props }: SceneProps) {
       {...props}
     >
       <rect width="320" height="220" className="i-bg" />
+      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
       {children}
     </svg>
   );
@@ -56,7 +57,6 @@ export function SceneTogether(props: SceneProps) {
       <rect x="262" y="192" width="50" height="14" rx="3" className="i-sky" />
       <rect x="266" y="178" width="42" height="14" rx="3" className="i-rose" />
       <rect x="260" y="164" width="52" height="14" rx="3" className="i-light" />
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }
@@ -84,7 +84,6 @@ export function SceneBooks(props: SceneProps) {
         <rect x="234" y="112" width="28" height="94" rx="4" className="i-sun" />
         <rect x="234" y="128" width="28" height="4" className="i-bg" opacity=".35" />
       </g>
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }
@@ -104,7 +103,6 @@ export function SceneBaby(props: SceneProps) {
       <circle cx="112" cy="186" r="5" className="i-rose" />
       <circle cx="148" cy="178" r="5" className="i-sky" />
       <circle cx="184" cy="186" r="5" className="i-sun" />
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }
@@ -129,7 +127,6 @@ export function SceneQuestion(props: SceneProps) {
         <path d="M180 140l70 10" />
         <path d="M180 156l50 8" />
       </g>
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }
@@ -149,7 +146,6 @@ export function ScenePartners(props: SceneProps) {
       <path d="M164 176a12 12 0 0 1 24 0z" className="i-rose" />
       <path d={star(50, 66, 9)} className="i-light g-twinkle" />
       <path d={star(274, 80, 11)} className="i-light g-twinkle" style={{ animationDelay: ".9s" }} />
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }
@@ -183,7 +179,6 @@ export function SceneNotebook(props: SceneProps) {
         <rect x="230" y="68" width="14" height="14" rx="3" className="i-clay" />
         <path d="M230 160h14l-7 20z" className="i-skin" />
       </g>
-      <rect y="206" width="320" height="14" className="i-mid" opacity=".5" />
     </Scene>
   );
 }

@@ -1,29 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Sparkles, Link2, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { TopBar } from "@/components/ui";
+import { SceneBaby, ScenePartners } from "@/components/illustrations";
 
 export default function ChoosePage() {
   const router = useRouter();
 
   const Card = ({
-    icon: Icon,
+    Scene,
     title,
     sub,
     onClick,
   }: {
-    icon: typeof Sparkles;
+    Scene: typeof SceneBaby;
     title: string;
     sub: string;
     onClick: () => void;
   }) => (
     <button
       onClick={onClick}
-      className="text-left cursor-pointer bg-g-panel border-none rounded-[20px] p-5 shadow-[var(--g-shadow)] flex gap-[15px] items-center w-full"
+      className="text-left cursor-pointer bg-g-panel border-none rounded-[26px] p-[12px] pr-[16px] shadow-[var(--g-shadow-sm)] flex gap-[15px] items-center w-full"
     >
-      <span className="w-12 h-12 rounded-[16px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
-        <Icon size={24} />
+      <span className="w-[84px] h-[84px] rounded-[20px] overflow-hidden shrink-0 block">
+        <Scene width="100%" height="100%" />
       </span>
       <span className="flex-1">
         <span className="block font-display text-[24px] text-g-ink leading-[1]">{title}</span>
@@ -49,13 +50,13 @@ export default function ChoosePage() {
 
         <div className="flex flex-col gap-[14px]">
           <Card
-            icon={Sparkles}
+            Scene={SceneBaby}
             title="Starting fresh"
             sub="Create a new family and set up your baby&rsquo;s profile."
             onClick={() => router.push("/onboarding/profile")}
           />
           <Card
-            icon={Link2}
+            Scene={ScenePartners}
             title="Joining my partner"
             sub="You&rsquo;ve been invited — link to their family space."
             onClick={() => router.push("/onboarding/join")}

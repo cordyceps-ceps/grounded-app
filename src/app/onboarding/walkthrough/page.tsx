@@ -2,23 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Book, User, MessageSquare, Leaf } from "lucide-react";
 import { TopBar, Button, Kicker, Dots } from "@/components/ui";
+import { SceneBooks, SceneBaby, SceneQuestion } from "@/components/illustrations";
+import { SceneFrame } from "@/components/illustrations/SceneFrame";
 import { createClient } from "@/lib/supabase/client";
 
 const STEPS = [
   {
-    icon: Book,
+    Scene: SceneBooks,
     title: "The sources are always visible",
     sub: "Every topic lists the exact books behind its answers. Tap any to see them — or buy a copy.",
   },
   {
-    icon: User,
+    Scene: SceneBaby,
     title: "Your context comes along",
     sub: "Grounded quietly knows your baby\u2019s age and the facts you save, so answers fit your situation.",
   },
   {
-    icon: MessageSquare,
+    Scene: SceneQuestion,
     title: "One question per conversation",
     sub: "Start a fresh conversation for each new question — it keeps answers focused and clear.",
   },
@@ -60,19 +61,20 @@ export default function WalkthroughPage() {
           Three things worth knowing
         </div>
 
-        <div className="flex flex-col gap-[13px]">
-          {STEPS.map(({ icon: Icon, title, sub }, i) => (
+        <div className="flex flex-col gap-4 pb-4">
+          {STEPS.map(({ Scene, title, sub }, i) => (
             <div
               key={i}
-              className="bg-g-panel rounded-[18px] p-[17px] shadow-[var(--g-shadow-sm)] flex gap-[13px] items-start"
+              className="g-up bg-g-panel rounded-[28px] p-[10px] pb-[18px] shadow-[var(--g-shadow-sm)]"
             >
-              <span className="w-10 h-10 rounded-[13px] bg-g-prim-soft text-g-prim flex items-center justify-center shrink-0">
-                <Icon size={20} />
-              </span>
-              <span>
-                <span className="block font-body text-[15.5px] font-bold text-g-ink mb-[3px]">{title}</span>
-                <span className="block font-body text-[13.5px] text-g-sub leading-[1.45]">{sub}</span>
-              </span>
+              <SceneFrame className="!shadow-none !rounded-[20px]">
+                <Scene width="100%" height="100%" />
+              </SceneFrame>
+              <div className="px-[10px] pt-[14px]">
+                <div className="font-display italic text-[15px] text-g-clay leading-none mb-[6px]">{i + 1} of 3</div>
+                <span className="block font-display text-[24px] leading-[1.1] text-g-ink mb-[6px]">{title}</span>
+                <span className="block font-body text-[14px] text-g-sub leading-[1.5]">{sub}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -82,7 +84,7 @@ export default function WalkthroughPage() {
         className="shrink-0 bg-g-bg"
         style={{ padding: "12px 24px calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
       >
-        <Button full icon={Leaf} onClick={finishOnboarding} disabled={loading}>
+        <Button full arrow onClick={finishOnboarding} disabled={loading}>
           {loading ? "Setting up\u2026" : "Take me in"}
         </Button>
       </div>

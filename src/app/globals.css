@@ -9,14 +9,14 @@
   --g-panel: oklch(0.982 0.009 88);
   --g-panel2: oklch(0.926 0.02 86);
   --g-ink: oklch(0.27 0.03 165);
-  --g-sub: oklch(0.45 0.025 160);
+  --g-sub: oklch(0.4 0.025 160);
   --g-faint: oklch(0.57 0.02 150);
   --g-line: oklch(0.885 0.02 86);
   --g-prim: oklch(0.37 0.05 160);
   --g-prim-soft: oklch(0.925 0.03 160);
   --g-on-prim: oklch(0.975 0.012 88);
-  --g-clay: oklch(0.56 0.13 40);
-  --g-clay-soft: oklch(0.93 0.04 45);
+  --g-clay: oklch(0.5 0.13 40);
+  --g-clay-soft: oklch(0.945 0.035 45);
   --g-honey: oklch(0.58 0.11 72);
   --g-honey-soft: oklch(0.93 0.055 85);
   --g-shadow: 0 2px 4px rgba(35,55,42,0.06), 0 14px 32px rgba(35,55,42,0.1);
@@ -60,7 +60,7 @@
   --g-panel: oklch(0.26 0.016 160);
   --g-panel2: oklch(0.31 0.018 160);
   --g-ink: oklch(0.93 0.02 88);
-  --g-sub: oklch(0.74 0.018 110);
+  --g-sub: oklch(0.8 0.018 110);
   --g-faint: oklch(0.58 0.015 130);
   --g-line: oklch(0.35 0.016 160);
   --g-prim: oklch(0.8 0.075 155);

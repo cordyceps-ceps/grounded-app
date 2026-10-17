@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Leaf, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { TopBar, Button, Field, Dots, Kicker } from "@/components/ui";
+import { SceneFrame } from "@/components/illustrations/SceneFrame";
+import { SceneNotebook } from "@/components/illustrations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function FactsPage() {
@@ -79,6 +81,10 @@ export default function FactsPage() {
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-[6px]">
+        <SceneFrame ratio="320 / 170" className="g-up mb-[22px]">
+          <SceneNotebook width="100%" height="100%" />
+        </SceneFrame>
+
         <div className="font-display text-[34px] leading-[1.05] text-g-ink mb-2">
           Anything else about {babyName}?
         </div>
@@ -87,7 +93,7 @@ export default function FactsPage() {
         </div>
 
         {/* Examples tip */}
-        <div className="bg-g-prim-soft rounded-[16px] p-[15px] mb-[22px]">
+        <div className="bg-g-prim-soft rounded-[22px] p-[17px] mb-[22px]">
           <Kicker color="var(--g-prim)" className="mb-[8px]">For example</Kicker>
           <div className="flex flex-col gap-[6px]">
             {[
@@ -108,7 +114,7 @@ export default function FactsPage() {
             {facts.map((fact) => (
               <div
                 key={fact.id}
-                className="flex items-start gap-[10px] bg-g-panel rounded-[12px] py-[11px] px-[13px] shadow-[var(--g-shadow-sm)]"
+                className="flex items-start gap-[10px] bg-g-panel rounded-[18px] py-[12px] px-[15px] shadow-[var(--g-shadow-sm)]"
               >
                 <span className="flex-1 font-body text-[14px] leading-[1.45] text-g-ink min-w-0">
                   {fact.content}
@@ -140,7 +146,7 @@ export default function FactsPage() {
           <button
             onClick={addFact}
             disabled={!input.trim() || saving}
-            className="w-[50px] h-[50px] rounded-[14px] bg-g-prim text-g-on-prim border-none cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40"
+            className="w-[50px] h-[50px] rounded-full bg-g-prim text-g-on-prim border-none cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40"
             aria-label="Add fact"
           >
             <Plus size={20} />

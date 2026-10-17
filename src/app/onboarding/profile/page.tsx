@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Calendar, Leaf } from "lucide-react";
+import { User, Calendar, Scale, Sprout } from "lucide-react";
 import { TopBar, Button, Field, Segmented, Dots } from "@/components/ui";
+import { SceneFrame } from "@/components/illustrations/SceneFrame";
+import { SceneBaby } from "@/components/illustrations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
@@ -81,6 +83,10 @@ export default function ProfilePage() {
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-[6px]">
+        <SceneFrame ratio="320 / 170" className="g-up mb-[22px]">
+          <SceneBaby width="100%" height="100%" />
+        </SceneFrame>
+
         <div className="font-display text-[34px] leading-[1.05] text-g-ink mb-2">
           Tell us about your baby
         </div>
@@ -131,7 +137,7 @@ export default function ProfilePage() {
               />
               <Field
                 label="Birth weight (kg)"
-                icon={Leaf}
+                icon={Scale}
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="e.g. 3.4"
@@ -151,9 +157,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Contextual tip */}
-        <div className="mt-[18px] bg-g-prim-soft rounded-[16px] p-[15px] flex gap-[11px]">
+        <div className="mt-[18px] bg-g-prim-soft rounded-[22px] p-[17px] flex gap-[11px]">
           <span className="text-g-prim shrink-0 mt-[1px]">
-            <Leaf size={18} />
+            <Sprout size={18} />
           </span>
           <span className="font-body text-[13px] leading-[1.5] text-g-ink">
             {status === "expecting"

@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User } from "lucide-react";
 import { TopBar, Button, Field } from "@/components/ui";
+import { BrandMark } from "@/components/illustrations";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AccountPage() {
@@ -97,6 +98,7 @@ function AccountInner() {
       <TopBar onBack={() => router.push("/onboarding/welcome")} />
 
       <div className="flex-1 overflow-y-auto px-6 py-[6px]">
+        <BrandMark size={40} className="mb-[18px]" />
         <div className="font-display text-[34px] leading-[1.05] text-g-ink mb-2">
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </div>
