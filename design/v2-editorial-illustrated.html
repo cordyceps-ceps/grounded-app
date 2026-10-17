@@ -1,0 +1,172 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3EEE5;--card:#FBF8F2;--moss:#2E4538;--moss2:#4C6B58;--clay:#D2694A;--sun:#E9B44C;--sky:#A9C4D8;--rose:#EBB9A6;--lilac:#BDB0D6;--ink:#1F2A24;--mute:#7B8079;--line:#E2DACB}
+*{box-sizing:border-box;margin:0}
+body{width:2160px;background:#E6DFD2;font-family:'DM Sans',sans-serif;color:var(--ink);padding:48px;display:flex;gap:44px;align-items:flex-start}
+.serif{font-family:'Instrument Serif',serif;font-weight:400}
+.phone{width:390px;height:844px;background:var(--paper);border-radius:52px;box-shadow:0 30px 60px rgba(40,50,40,.22),0 0 0 9px #1c211e;position:relative;overflow:hidden;flex:none}
+.phone::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .4  0 0 0 .13 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>")}
+.in{padding:58px 22px 0}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.logo{display:flex;align-items:center;gap:8px;font-size:25px;font-style:italic}
+.av{width:34px;height:34px;border-radius:50%;background:var(--lilac);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--moss)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--moss)}
+h1{font-size:44px;line-height:1;letter-spacing:-.01em;margin:12px 0 18px}
+.search{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px;font-size:15px;color:var(--mute);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.hero{background:var(--moss);border-radius:28px;color:var(--paper);padding:20px 20px 0;overflow:hidden;position:relative;height:196px}
+.hero h2{font-size:27px;line-height:1.05;width:170px}
+.hero p{font-size:12px;opacity:.75;margin-top:8px;width:150px;line-height:1.4}
+.hero svg{position:absolute;right:-6px;bottom:0;width:210px;height:150px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 10px}
+.sec h3{font-size:24px}.sec span{font-size:12px;color:var(--mute);font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.t{border-radius:22px;height:132px;padding:14px;position:relative;overflow:hidden}
+.t b{font-size:15px;font-weight:600;position:relative;z-index:2}
+.t small{display:block;font-size:11px;opacity:.7;margin-top:2px;position:relative;z-index:2}
+.t svg{position:absolute;right:-14px;bottom:-14px;width:110px;height:110px}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:92px;background:linear-gradient(transparent,var(--paper) 38%);display:flex;justify-content:space-around;padding:30px 20px 0;z-index:5}
+.tabs div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#9aa097}
+.tabs .a{color:var(--moss)}
+.tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.band{height:190px;margin:-58px -22px 0;padding:62px 22px 0;background:var(--sky);position:relative;overflow:hidden}
+.band svg{position:absolute;right:-10px;bottom:-26px;width:190px;height:190px}
+.band .pill{background:rgba(255,255,255,.55);border:0}
+.q{font-size:22px;font-style:italic;line-height:1.15;color:var(--moss);margin-top:14px;width:230px;position:relative;z-index:2}
+.sheet{background:var(--paper);border-radius:30px 30px 0 0;margin:-20px -22px 0;padding:24px 22px;position:relative;z-index:3}
+.sheet h2{font-size:29px;line-height:1.08;letter-spacing:-.005em}
+.sheet p{font-size:14.5px;line-height:1.55;margin-top:12px;color:#34413a}
+.agree{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--moss)}
+.dots{display:flex;gap:4px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--moss)}.dots i.o{background:transparent;border:1.5px solid var(--moss)}
+.src{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px 12px;margin-top:8px}
+.sp{width:30px;height:48px;border-radius:4px 4px 3px 3px;flex:none;position:relative;overflow:hidden}
+.src b{font-size:13.5px;font-weight:600;display:block}.src small{font-size:11.5px;color:var(--mute)}
+.pq{font-size:19px;font-style:italic;line-height:1.25;border-left:3px solid var(--clay);padding-left:12px;margin-top:14px;color:var(--moss)}
+.help{display:flex;gap:10px;margin-top:12px;font-size:12.5px;line-height:1.45;color:#4a554d;border-top:1px solid var(--line);padding-top:12px}
+.books{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-top:6px}
+.cv{border-radius:6px 12px 12px 6px;height:178px;padding:14px 12px;position:relative;overflow:hidden;box-shadow:inset 7px 0 0 rgba(0,0,0,.09),0 8px 16px rgba(40,50,40,.12)}
+.cv b{font-family:'Instrument Serif',serif;font-weight:400;font-size:19px;line-height:1;display:block;position:relative;z-index:2}
+.cv small{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.75;position:relative;z-index:2;display:block;margin-top:6px}
+.cv svg{position:absolute;left:0;bottom:0;width:100%;height:110px}
+.panel{width:640px;flex:none;background:var(--card);border-radius:36px;padding:40px;border:1px solid var(--line)}
+.panel h2{font-size:48px;line-height:1;margin-bottom:6px}
+.panel .sub{font-size:15px;color:var(--mute);margin-bottom:24px}
+.lab{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--clay);margin:26px 0 10px}
+.voice{font-size:21px;line-height:1.25;color:var(--moss)}
+.voice span{display:block;margin-bottom:6px}
+.voice s{text-decoration:none;color:#a2a79f}
+.sw{display:flex;gap:8px}
+.sw div{flex:1;height:76px;border-radius:16px;padding:9px;font-size:10.5px;font-weight:700;display:flex;align-items:flex-end}
+.ic{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.ic div{aspect-ratio:1;border-radius:18px;overflow:hidden;position:relative}
+.ic svg{width:100%;height:100%}
+.rules{font-size:14px;line-height:1.55;color:#34413a}
+.rules li{margin:5px 0 5px 18px}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="sleep" viewBox="0 0 200 200"><circle cx="100" cy="108" r="74" fill="#2E4538"/><circle cx="86" cy="96" r="36" fill="#E9B44C"/><circle cx="103" cy="84" r="32" fill="#2E4538"/><path d="M142 70l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="#F3EEE5"/><path d="M60 140l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#F3EEE5" opacity=".8"/><g fill="#F3EEE5"><circle cx="72" cy="168" r="20"/><circle cx="100" cy="160" r="26"/><circle cx="132" cy="170" r="18"/><rect x="60" y="168" width="84" height="20"/></g></symbol>
+<symbol id="feed" viewBox="0 0 200 200"><circle cx="78" cy="82" r="18" fill="#E9B44C"/><circle cx="112" cy="70" r="15" fill="#2E4538"/><circle cx="138" cy="92" r="13" fill="#BDB0D6"/><path d="M30 106h140a70 70 0 0 1-140 0z" fill="#D2694A"/><rect x="30" y="100" width="140" height="10" rx="5" fill="#F3EEE5"/><g transform="rotate(32 160 60)"><rect x="156" y="12" width="9" height="70" rx="4.5" fill="#F3EEE5"/><ellipse cx="160.5" cy="18" rx="14" ry="18" fill="#F3EEE5"/></g></symbol>
+<symbol id="skin" viewBox="0 0 200 200"><circle cx="104" cy="104" r="66" fill="#EBB9A6"/><path d="M100 188V70" stroke="#2E4538" stroke-width="6" stroke-linecap="round"/><ellipse cx="78" cy="96" rx="14" ry="30" transform="rotate(-38 78 96)" fill="#4C6B58"/><ellipse cx="124" cy="82" rx="14" ry="32" transform="rotate(34 124 82)" fill="#2E4538"/><ellipse cx="82" cy="140" rx="12" ry="26" transform="rotate(-48 82 140)" fill="#2E4538"/><ellipse cx="124" cy="134" rx="12" ry="26" transform="rotate(46 124 134)" fill="#4C6B58"/><ellipse cx="100" cy="52" rx="12" ry="24" fill="#4C6B58"/></symbol>
+<symbol id="grow" viewBox="0 0 200 200"><path d="M30 190V120a44 44 0 0 1 88 0v70z" fill="#BDB0D6"/><rect x="108" y="108" width="60" height="82" rx="6" fill="#E9B44C"/><circle cx="140" cy="76" r="30" fill="#D2694A"/><path d="M58 190V130a16 16 0 0 1 32 0v60z" fill="#F3EEE5" opacity=".85"/></symbol>
+<symbol id="scene" viewBox="0 0 210 150"><circle cx="150" cy="58" r="44" fill="#E9B44C"/><path d="M14 150V96a28 28 0 0 1 56 0v54z" fill="#4C6B58"/><path d="M26 150v-44a16 16 0 0 1 32 0v44z" fill="#2E4538"/><path d="M70 150V74a40 40 0 0 1 80 0v76z" fill="#D2694A"/><rect x="62" y="118" width="96" height="32" rx="12" fill="#C0583B"/><path d="M84 150v-34a22 22 0 0 1 44 0v34z" fill="#F3EEE5"/><circle cx="106" cy="76" r="14" fill="#EBC9AE"/><path d="M92 74a14 14 0 0 1 28 -2c-6 -6 -20 -8 -28 2z" fill="#2E4538"/><ellipse cx="124" cy="128" rx="16" ry="11" fill="#BDB0D6"/><circle cx="136" cy="122" r="8" fill="#EBC9AE"/><g><rect x="168" y="126" width="38" height="9" rx="2" fill="#A9C4D8"/><rect x="172" y="135" width="32" height="9" rx="2" fill="#EBB9A6"/><rect x="166" y="144" width="40" height="7" rx="2" fill="#F3EEE5"/></g></symbol>
+<symbol id="sprig" viewBox="0 0 24 24"><path d="M12 22V8" stroke="#2E4538" stroke-width="2" stroke-linecap="round"/><ellipse cx="7.5" cy="9" rx="3" ry="5.5" transform="rotate(-35 7.5 9)" fill="#D2694A"/><ellipse cx="16.5" cy="7" rx="3" ry="5.5" transform="rotate(35 16.5 7)" fill="#2E4538"/><ellipse cx="12" cy="4" rx="2.5" ry="4" fill="#E9B44C"/></symbol>
+</defs></svg>
+
+<!-- HOME -->
+<div class="phone"><div class="in">
+ <div class="top"><div class="logo serif"><svg width="24" height="24"><use href="#sprig"/></svg>grounded</div><div class="av">T</div></div>
+ <span class="pill">Baby · 11 weeks</span>
+ <h1 class="serif">Evening, Tess.</h1>
+ <div class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B8079" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Ask anything about your baby</div>
+ <div class="hero"><h2 class="serif">Answers from the books you trust.</h2><p>Every answer is traced to a page.</p><svg><use href="#scene"/></svg></div>
+ <div class="sec"><h3 class="serif">Browse by topic</h3><span>All 12</span></div>
+ <div class="grid">
+  <div class="t" style="background:var(--sky)"><b>Sleep</b><small>148 answers</small><svg><use href="#sleep"/></svg></div>
+  <div class="t" style="background:var(--rose)"><b>Feeding</b><small>126 answers</small><svg><use href="#feed"/></svg></div>
+  <div class="t" style="background:var(--sun)"><b>Skin &amp; health</b><small>94 answers</small><svg><use href="#skin"/></svg></div>
+  <div class="t" style="background:var(--lilac)"><b>Development</b><small>81 answers</small><svg><use href="#grow"/></svg></div>
+ </div>
+</div>
+<div class="tabs">
+ <div class="a"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Ask</div>
+ <div><svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3.5 1-3.5 14-3.5-1z"/></svg>Shelf</div>
+ <div><svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>Saved</div>
+ <div><svg viewBox="0 0 24 24"><path d="M4 20l1-5L16 4l4 4L9 19z"/></svg>Journal</div>
+</div></div>
+
+<!-- ANSWER -->
+<div class="phone"><div class="in">
+ <div class="band"><span class="pill">Sleep · 0–3 months</span><div class="q serif">Why won't she nap longer than 30 minutes?</div><svg><use href="#sleep"/></svg></div>
+ <div class="sheet">
+  <h2 class="serif">That's normal at this age. Naps usually lengthen around 4–5 months.</h2>
+  <p>Young babies cycle through light sleep quickly and often wake at the end of the first cycle. Keep the room dark, stay consistent, and keep awake windows to roughly 60–90 minutes.</p>
+  <div class="agree"><div class="dots"><i></i><i></i><i></i><i class="o"></i></div>3 of 4 books agree</div>
+  <div class="pq serif">"A 30–45 minute nap is a single sleep cycle, entirely typical in the early weeks."</div>
+  <div class="sec" style="margin:18px 0 6px"><h3 class="serif" style="font-size:21px">Sources</h3></div>
+  <div class="src"><div class="sp" style="background:var(--clay)"><svg viewBox="0 0 30 48" width="30" height="48"><circle cx="15" cy="34" r="8" fill="#E9B44C"/></svg></div><div><b>The Language of Baby Sleep</b><small>Ch. 4 · p. 87</small></div></div>
+  <div class="src"><div class="sp" style="background:var(--moss2)"><svg viewBox="0 0 30 48" width="30" height="48"><rect x="6" y="28" width="18" height="12" fill="#F3EEE5"/></svg></div><div><b>Happiest Baby on the Block</b><small>Ch. 7 · p. 142</small></div></div>
+ </div>
+</div>
+<div class="tabs">
+ <div class="a"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Ask</div>
+ <div><svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3.5 1-3.5 14-3.5-1z"/></svg>Shelf</div>
+ <div><svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>Saved</div>
+ <div><svg viewBox="0 0 24 24"><path d="M4 20l1-5L16 4l4 4L9 19z"/></svg>Journal</div>
+</div></div>
+
+<!-- SHELF -->
+<div class="phone"><div class="in">
+ <div class="top"><div class="logo serif" style="font-size:34px;font-style:normal">The Shelf</div><span class="pill">6 books</span></div>
+ <p style="font-size:14px;color:var(--mute);margin:-10px 0 16px;line-height:1.45">The books behind every answer. Tap one to search only inside it.</p>
+ <div class="books">
+  <div class="cv" style="background:var(--clay);color:var(--paper)"><b>The Language of Baby Sleep</b><small>Polly Moore</small><svg viewBox="0 0 120 110"><circle cx="78" cy="70" r="34" fill="#E9B44C"/><circle cx="90" cy="60" r="30" fill="#D2694A"/></svg></div>
+  <div class="cv" style="background:var(--sky);color:var(--moss)"><b>Happiest Baby on the Block</b><small>Harvey Karp</small><svg viewBox="0 0 120 110"><path d="M0 110V70a40 40 0 0 1 80 0v40z" fill="#2E4538"/><circle cx="92" cy="86" r="18" fill="#F3EEE5"/></svg></div>
+  <div class="cv" style="background:var(--sun);color:var(--moss)"><b>Cribsheet</b><small>Emily Oster</small><svg viewBox="0 0 120 110"><rect x="14" y="52" width="40" height="58" fill="#2E4538"/><rect x="58" y="30" width="40" height="80" fill="#D2694A"/></svg></div>
+  <div class="cv" style="background:var(--moss);color:var(--paper)"><b>Baby-Led Weaning</b><small>Rapley &amp; Murkett</small><svg viewBox="0 0 120 110"><path d="M10 70h100a50 50 0 0 1-100 0z" fill="#EBB9A6"/><circle cx="46" cy="52" r="14" fill="#E9B44C"/><circle cx="76" cy="46" r="11" fill="#BDB0D6"/></svg></div>
+  <div class="cv" style="background:var(--lilac);color:var(--moss)"><b>Expecting Better</b><small>Emily Oster</small><svg viewBox="0 0 120 110"><ellipse cx="60" cy="86" rx="46" ry="34" fill="#2E4538"/><circle cx="60" cy="52" r="22" fill="#F3EEE5"/></svg></div>
+  <div class="cv" style="background:var(--rose);color:var(--moss)"><b>NHS: Your Baby</b><small>NHS</small><svg viewBox="0 0 120 110"><path d="M60 110V30" stroke="#2E4538" stroke-width="5" stroke-linecap="round"/><ellipse cx="40" cy="52" rx="10" ry="22" transform="rotate(-35 40 52)" fill="#4C6B58"/><ellipse cx="80" cy="46" rx="10" ry="24" transform="rotate(35 80 46)" fill="#2E4538"/></svg></div>
+ </div>
+</div>
+<div class="tabs">
+ <div><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Ask</div>
+ <div class="a"><svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3.5 1-3.5 14-3.5-1z"/></svg>Shelf</div>
+ <div><svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>Saved</div>
+ <div><svg viewBox="0 0 24 24"><path d="M4 20l1-5L16 4l4 4L9 19z"/></svg>Journal</div>
+</div></div>
+
+<!-- BRAND SHEET -->
+<div class="panel">
+ <h2 class="serif">Grounded, v2</h2>
+ <div class="sub">Calm, warm, well-read. Grown-up first, gentle second.</div>
+ <div class="lab">Personality</div>
+ <div class="voice serif"><span>The friend who has read everything and never makes you feel behind.</span><span><s>"Yay, great question!"</s> &nbsp;"Here's what the books say."</span><span><s>"Don't worry mama!"</s> &nbsp;"Short naps are normal at this age."</span></div>
+ <div class="lab">Palette: earthy, never candy</div>
+ <div class="sw">
+  <div style="background:var(--paper);border:1px solid var(--line)">Paper</div>
+  <div style="background:var(--moss);color:var(--paper)">Moss</div>
+  <div style="background:var(--clay);color:var(--paper)">Clay</div>
+  <div style="background:var(--sun)">Sun</div>
+  <div style="background:var(--sky)">Sky</div>
+  <div style="background:var(--rose)">Rose</div>
+  <div style="background:var(--lilac)">Lilac</div>
+ </div>
+ <div class="lab">Illustration language</div>
+ <div class="ic">
+  <div style="background:var(--sky)"><svg><use href="#sleep"/></svg></div>
+  <div style="background:var(--rose)"><svg><use href="#feed"/></svg></div>
+  <div style="background:var(--sun)"><svg><use href="#skin"/></svg></div>
+  <div style="background:var(--lilac)"><svg><use href="#grow"/></svg></div>
+  <div style="background:var(--moss)"><svg viewBox="0 0 210 150" preserveAspectRatio="xMidYMid slice"><use href="#scene"/></svg></div>
+  <div style="background:var(--card);border:1px solid var(--line);display:grid;place-items:center"><svg width="56" height="56" style="width:56px;height:56px"><use href="#sprig"/></svg></div>
+ </div>
+ <ul class="rules" style="margin-top:12px">
+  <li>Flat, overlapping geometry. No outlines, no faces, no gradients.</li>
+  <li>Each topic owns one colour, as in Nara, so you know where you are at a glance.</li>
+  <li>Figures are faceless and abstract, so any parent can see themselves in them.</li>
+  <li>Books are illustrated objects. Source covers become a collectable shelf.</li>
+  <li>Type: Instrument Serif for voice and authority, DM Sans for everything you read.</li>
+ </ul>
+</div>
+</body></html>

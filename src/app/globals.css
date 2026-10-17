@@ -1,23 +1,47 @@
 @import "tailwindcss";
 
-/* ─── Kitchen Table design tokens (OKLCH, locked) ──────────────────────────── */
+/* ─── Editorial design tokens (OKLCH) ──────────────────────────────────────
+   Moss primary on warm paper. Terracotta (clay) is an accent, not the brand.
+   Each topic owns a hue (--g-t-*); illustrations draw from --g-ill-*.        */
 
 :root {
-  --g-bg: oklch(0.945 0.027 78);
-  --g-panel: oklch(0.979 0.017 80);
-  --g-panel2: oklch(0.915 0.03 74);
-  --g-ink: oklch(0.28 0.03 50);
-  --g-sub: oklch(0.46 0.03 52);
-  --g-faint: oklch(0.60 0.025 56);
-  --g-line: oklch(0.88 0.024 70);
-  --g-prim: oklch(0.55 0.115 46);
-  --g-prim-soft: oklch(0.93 0.05 58);
-  --g-on-prim: oklch(0.975 0.02 80);
-  --g-honey: oklch(0.66 0.105 66);
-  --g-honey-soft: oklch(0.93 0.05 74);
-  --g-shadow: 0 2px 4px rgba(90,55,30,0.06), 0 14px 32px rgba(90,55,30,0.09);
-  --g-shadow-sm: 0 1px 2px rgba(90,55,30,0.05), 0 5px 14px rgba(90,55,30,0.05);
-  --g-overlay: rgba(40,26,15,0.42);
+  --g-bg: oklch(0.953 0.016 88);
+  --g-panel: oklch(0.982 0.009 88);
+  --g-panel2: oklch(0.926 0.02 86);
+  --g-ink: oklch(0.27 0.03 165);
+  --g-sub: oklch(0.45 0.025 160);
+  --g-faint: oklch(0.57 0.02 150);
+  --g-line: oklch(0.885 0.02 86);
+  --g-prim: oklch(0.37 0.05 160);
+  --g-prim-soft: oklch(0.925 0.03 160);
+  --g-on-prim: oklch(0.975 0.012 88);
+  --g-clay: oklch(0.56 0.13 40);
+  --g-clay-soft: oklch(0.93 0.04 45);
+  --g-honey: oklch(0.58 0.11 72);
+  --g-honey-soft: oklch(0.93 0.055 85);
+  --g-shadow: 0 2px 4px rgba(35,55,42,0.06), 0 14px 32px rgba(35,55,42,0.1);
+  --g-shadow-sm: 0 1px 2px rgba(35,55,42,0.05), 0 5px 14px rgba(35,55,42,0.06);
+  --g-overlay: rgba(20,32,25,0.45);
+
+  /* Topic hues: tile fills (pastel; ink text sits on them) */
+  --g-t-rose: oklch(0.83 0.065 18);
+  --g-t-sky: oklch(0.82 0.05 240);
+  --g-t-lilac: oklch(0.80 0.07 300);
+  --g-t-sun: oklch(0.86 0.1 88);
+  --g-t-sage: oklch(0.82 0.06 152);
+  --g-t-peach: oklch(0.85 0.07 58);
+
+  /* Illustration palette */
+  --g-ill-deep: oklch(0.37 0.05 160);
+  --g-ill-mid: oklch(0.52 0.06 160);
+  --g-ill-light: oklch(0.97 0.012 88);
+  --g-ill-sun: oklch(0.81 0.14 83);
+  --g-ill-clay: oklch(0.64 0.14 40);
+  --g-ill-lilac: oklch(0.76 0.08 300);
+  --g-ill-rose: oklch(0.82 0.07 25);
+  --g-ill-sky: oklch(0.78 0.06 240);
+  --g-ill-skin: oklch(0.82 0.06 60);
+  --g-ill-bg: oklch(0.37 0.05 160);
   --g-cat-feeding: oklch(0.48 0.07 150);
   --g-cat-feeding-soft: oklch(0.93 0.035 150);
   --g-cat-sleep: oklch(0.48 0.05 250);
@@ -32,21 +56,41 @@
 }
 
 .night {
-  --g-bg: oklch(0.205 0.018 48);
-  --g-panel: oklch(0.255 0.02 50);
-  --g-panel2: oklch(0.305 0.022 50);
-  --g-ink: oklch(0.925 0.025 78);
-  --g-sub: oklch(0.73 0.02 70);
-  --g-faint: oklch(0.57 0.018 62);
-  --g-line: oklch(0.345 0.02 54);
-  --g-prim: oklch(0.68 0.105 50);
-  --g-prim-soft: oklch(0.325 0.055 50);
-  --g-on-prim: oklch(0.17 0.015 48);
-  --g-honey: oklch(0.78 0.09 72);
-  --g-honey-soft: oklch(0.33 0.05 70);
+  --g-bg: oklch(0.205 0.014 160);
+  --g-panel: oklch(0.26 0.016 160);
+  --g-panel2: oklch(0.31 0.018 160);
+  --g-ink: oklch(0.93 0.02 88);
+  --g-sub: oklch(0.74 0.018 110);
+  --g-faint: oklch(0.58 0.015 130);
+  --g-line: oklch(0.35 0.016 160);
+  --g-prim: oklch(0.8 0.075 155);
+  --g-prim-soft: oklch(0.33 0.035 160);
+  --g-on-prim: oklch(0.18 0.02 160);
+  --g-clay: oklch(0.74 0.11 45);
+  --g-clay-soft: oklch(0.33 0.05 40);
+  --g-honey: oklch(0.8 0.1 82);
+  --g-honey-soft: oklch(0.34 0.05 82);
   --g-shadow: 0 2px 4px rgba(0,0,0,0.32), 0 16px 36px rgba(0,0,0,0.42);
   --g-shadow-sm: 0 1px 3px rgba(0,0,0,0.34);
-  --g-overlay: rgba(0,0,0,0.58);
+  --g-overlay: rgba(0,0,0,0.6);
+
+  --g-t-rose: oklch(0.37 0.05 18);
+  --g-t-sky: oklch(0.36 0.045 240);
+  --g-t-lilac: oklch(0.37 0.055 300);
+  --g-t-sun: oklch(0.4 0.06 88);
+  --g-t-sage: oklch(0.37 0.045 152);
+  --g-t-peach: oklch(0.39 0.05 58);
+
+  --g-ill-deep: oklch(0.2 0.02 160);
+  --g-ill-mid: oklch(0.5 0.05 160);
+  --g-ill-light: oklch(0.93 0.018 88);
+  --g-ill-sun: oklch(0.8 0.13 83);
+  --g-ill-clay: oklch(0.67 0.13 40);
+  --g-ill-lilac: oklch(0.68 0.07 300);
+  --g-ill-rose: oklch(0.72 0.07 25);
+  --g-ill-sky: oklch(0.7 0.05 240);
+  --g-ill-skin: oklch(0.76 0.06 60);
+  --g-ill-bg: oklch(0.3 0.04 160);
   --g-cat-feeding: oklch(0.70 0.06 150);
   --g-cat-feeding-soft: oklch(0.31 0.04 150);
   --g-cat-sleep: oklch(0.72 0.05 250);
@@ -75,6 +119,15 @@
   --color-g-on-prim: var(--g-on-prim);
   --color-g-honey: var(--g-honey);
   --color-g-honey-soft: var(--g-honey-soft);
+  --color-g-clay: var(--g-clay);
+  --color-g-clay-soft: var(--g-clay-soft);
+
+  --color-g-t-rose: var(--g-t-rose);
+  --color-g-t-sky: var(--g-t-sky);
+  --color-g-t-lilac: var(--g-t-lilac);
+  --color-g-t-sun: var(--g-t-sun);
+  --color-g-t-sage: var(--g-t-sage);
+  --color-g-t-peach: var(--g-t-peach);
 
   --color-g-cat-feeding: var(--g-cat-feeding);
   --color-g-cat-feeding-soft: var(--g-cat-feeding-soft);
@@ -103,6 +156,24 @@
   }
 }
 
+/* ─── Illustration palette classes (fills/strokes follow theme tokens) ─────── */
+
+.i-deep { fill: var(--g-ill-deep); }
+.i-mid { fill: var(--g-ill-mid); }
+.i-light { fill: var(--g-ill-light); }
+.i-sun { fill: var(--g-ill-sun); }
+.i-clay { fill: var(--g-ill-clay); }
+.i-lilac { fill: var(--g-ill-lilac); }
+.i-rose { fill: var(--g-ill-rose); }
+.i-sky { fill: var(--g-ill-sky); }
+.i-skin { fill: var(--g-ill-skin); }
+.i-bg { fill: var(--g-ill-bg); }
+.s-deep { stroke: var(--g-ill-deep); }
+.s-mid { stroke: var(--g-ill-mid); }
+.s-light { stroke: var(--g-ill-light); }
+.s-sky { stroke: var(--g-ill-sky); }
+.s-sun { stroke: var(--g-ill-sun); }
+
 /* ─── Animations ───────────────────────────────────────────────────────────── */
 
 @keyframes g-fade-up {
@@ -128,6 +199,16 @@
 @keyframes g-sheet-up {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+@keyframes g-rock {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+
+@keyframes g-twinkle {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 @keyframes g-fade-in {
@@ -170,7 +251,12 @@
   opacity: 0.85;
 }
 
+.g-rock { transform-origin: 50% 85%; animation: g-rock 3.6s ease-in-out infinite; }
+.g-twinkle { animation: g-twinkle 2.4s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
+  .g-rock { animation: none; }
+  .g-twinkle { animation: none; opacity: 0.8; }
   .g-up { animation: none; }
   .g-dot { animation: none; opacity: 0.6; }
   .g-caret { animation: none; opacity: 1; }

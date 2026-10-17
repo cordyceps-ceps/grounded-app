@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, Leaf } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "@/components/illustrations";
 import { IconBtn } from "./IconBtn";
 
 interface TopBarProps {
@@ -25,9 +26,7 @@ export function TopBar({ onBack, title, logo, right }: TopBarProps) {
         <IconBtn icon={ArrowLeft} label="Back" onClick={onBack} />
       ) : logo ? (
         <div className="flex items-center gap-[9px]">
-          <div className="w-[30px] h-[30px] rounded-[15px] bg-g-prim text-g-on-prim flex items-center justify-center">
-            <Leaf size={16} />
-          </div>
+          <BrandMark size={30} />
           <span className="font-display text-[26px] text-g-ink">Grounded</span>
         </div>
       ) : (

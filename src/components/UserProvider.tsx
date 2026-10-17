@@ -50,7 +50,7 @@ interface FamilyMember {
   display_name: string;
 }
 
-interface UserContextValue {
+export interface UserContextValue {
   me: string;
   userId: string | null;
   familyId: string | null;
@@ -68,7 +68,7 @@ interface UserContextValue {
   refreshSuggestions: (topicId: string) => Promise<void>;
 }
 
-const UserContext = createContext<UserContextValue>({
+export const UserContext = createContext<UserContextValue>({
   me: "",
   userId: null,
   familyId: null,

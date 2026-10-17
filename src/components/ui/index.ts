@@ -8,3 +8,4 @@ export { Cover } from "./Cover";
 export { IconBtn } from "./IconBtn";
 export { TopBar } from "./TopBar";
 export { Dots } from "./Dots";
+export { TopicTile } from "./TopicTile";

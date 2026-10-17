@@ -18,9 +18,12 @@ export interface Helpline {
   tel: string;
 }
 
+export type TopicHue = "rose" | "sky" | "lilac" | "sun" | "sage" | "peach";
+
 export interface Topic {
   id: string;
   name: string;
+  hue: TopicHue;
   blurb: string;
   ready: boolean;
   sources: Source[];
@@ -36,13 +39,14 @@ export const TOPICS: Topic[] = [
   {
     id: "bf",
     name: "Breastfeeding",
+    hue: "rose",
     blurb: "Latching, supply and feeding rhythms.",
     ready: true,
     sources: [
-      { title: "The Nursing Mother\u2019s Companion", author: "Kathleen Huggins", spine: "#3f5e4a", amazonUrl: "https://www.amazon.co.uk/Nursing-Mothers-Companion-Illustrations-Breastfeeding/dp/1558328823" },
-      { title: "The Womanly Art of Breastfeeding", author: "La Leche League", spine: "#7d5a3c", amazonUrl: "https://www.amazon.co.uk/Womanly-Art-Breastfeeding-Completely-International/dp/0345518446" },
-      { title: "Breastfeeding Made Simple", author: "Nancy Mohrbacher", spine: "#9a6b3f", amazonUrl: "https://www.amazon.co.uk/Breastfeeding-Made-Simple-Natural-Nursing/dp/1572248610" },
-      { title: "Infant Milks & Breastfeeding Guides", author: "First Steps Nutrition Trust", spine: "#2a7a5a", amazonUrl: "https://www.firststepsnutrition.org" },
+      { title: "The Nursing Mother\u2019s Companion", author: "Kathleen Huggins", spine: "#3d5f4b", amazonUrl: "https://www.amazon.co.uk/Nursing-Mothers-Companion-Illustrations-Breastfeeding/dp/1558328823" },
+      { title: "The Womanly Art of Breastfeeding", author: "La Leche League", spine: "#a5623f", amazonUrl: "https://www.amazon.co.uk/Womanly-Art-Breastfeeding-Completely-International/dp/0345518446" },
+      { title: "Breastfeeding Made Simple", author: "Nancy Mohrbacher", spine: "#b8863a", amazonUrl: "https://www.amazon.co.uk/Breastfeeding-Made-Simple-Natural-Nursing/dp/1572248610" },
+      { title: "Infant Milks & Breastfeeding Guides", author: "First Steps Nutrition Trust", spine: "#3f7a6a", amazonUrl: "https://www.firststepsnutrition.org" },
     ],
     videos: [
       { channel: "Global Health Media Project", handle: "@GlobalHealthMediaProject", playlistId: "PLxVdpaMfvxLCDSNEgM2QcN5pAc-LraJgL", url: "https://www.youtube.com/playlist?list=PLxVdpaMfvxLCDSNEgM2QcN5pAc-LraJgL" },
@@ -57,13 +61,14 @@ export const TOPICS: Topic[] = [
   {
     id: "sleep",
     name: "Sleep",
+    hue: "sky",
     blurb: "Naps, night wakings and gentle settling.",
     ready: true,
     sources: [
-      { title: "Healthy Sleep Habits, Happy Child", author: "Marc Weissbluth", spine: "#46586b", amazonUrl: "https://www.amazon.co.uk/Healthy-Sleep-Habits-Happy-Child/dp/0553394800" },
-      { title: "Precious Little Sleep", author: "Alexis Dubief", spine: "#5a6b4a", amazonUrl: "https://www.amazon.co.uk/Precious-Little-Sleep-Complete-Parents/dp/0997580828" },
-      { title: "Solve Your Child's Sleep Problems", author: "Richard Ferber", spine: "#4a5a6b", amazonUrl: "https://www.amazon.co.uk/Solve-Your-Childs-Sleep-Problems/dp/0743201639" },
-      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#9a5a3f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
+      { title: "Healthy Sleep Habits, Happy Child", author: "Marc Weissbluth", spine: "#4f6d86", amazonUrl: "https://www.amazon.co.uk/Healthy-Sleep-Habits-Happy-Child/dp/0553394800" },
+      { title: "Precious Little Sleep", author: "Alexis Dubief", spine: "#6a8a62", amazonUrl: "https://www.amazon.co.uk/Precious-Little-Sleep-Complete-Parents/dp/0997580828" },
+      { title: "Solve Your Child's Sleep Problems", author: "Richard Ferber", spine: "#6a5f8c", amazonUrl: "https://www.amazon.co.uk/Solve-Your-Childs-Sleep-Problems/dp/0743201639" },
+      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#b5603f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
     ],
     note: "These are the sources Grounded draws from for this topic. Consider supporting the authors.",
     helplines: [
@@ -95,15 +100,16 @@ Rules:
   {
     id: "develop",
     name: "Child development",
+    hue: "lilac",
     blurb: "Leaps, milestones and what\u2019s normal.",
     ready: true,
     sources: [
       { title: "Your Baby Week by Week", author: "Simone Cave & Caroline Fertleman", spine: "#5a7a6b", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Week-Ultimate-Guide/dp/0091910552" },
-      { title: "Baby Love", author: "Robin Barker", spine: "#7d5a3c", amazonUrl: "https://www.amazon.co.uk/Baby-Love-Robin-Barker/dp/0330424939" },
+      { title: "Baby Love", author: "Robin Barker", spine: "#a5623f", amazonUrl: "https://www.amazon.co.uk/Baby-Love-Robin-Barker/dp/0330424939" },
       { title: "Brain Rules for Baby", author: "John Medina", spine: "#3a5a6b", amazonUrl: "https://www.amazon.co.uk/Brain-Rules-Baby-Updated-Expanded/dp/0983263388" },
       { title: "Your Baby & Child", author: "Penelope Leach", spine: "#6b4a5a", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Child-Birth-Five/dp/0241562651" },
       { title: "How Children Develop", author: "Siegler, Saffran & Eisenberg", spine: "#4a6b5a", amazonUrl: "https://www.amazon.co.uk/How-Children-Develop-Robert-Siegler/dp/1319184561" },
-      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#9a5a3f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
+      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#b5603f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
     ],
     note: "These are the sources Grounded draws from for this topic. Consider supporting the authors.",
     helplines: [
@@ -138,6 +144,7 @@ Rules:
   {
     id: "wbw",
     name: "Week by week",
+    hue: "sage",
     blurb: "The week-by-week timeline, book only.",
     ready: true,
     hidden: true,
@@ -155,31 +162,34 @@ This conversation was opened from the week-by-week milestone timeline, scoped to
   {
     id: "weaning",
     name: "Weaning & solids",
+    hue: "sun",
     blurb: "Starting solids and baby-led weaning.",
     ready: false,
     sources: [
-      { title: "Baby-Led Weaning", author: "Gill Rapley", spine: "#6b6a3a", amazonUrl: "https://www.amazon.co.uk/Baby-Led-Weaning-Completely-Expanded-Anniversary/dp/1665217510" },
-      { title: "The Pediatrician\u2019s Guide to Feeding Babies", author: "Anthony Porto", spine: "#9a6b3f", amazonUrl: "https://www.amazon.co.uk/Pediatricians-Guide-Feeding-Babies-Toddlers/dp/1607749017" },
+      { title: "Baby-Led Weaning", author: "Gill Rapley", spine: "#9c8a3a", amazonUrl: "https://www.amazon.co.uk/Baby-Led-Weaning-Completely-Expanded-Anniversary/dp/1665217510" },
+      { title: "The Pediatrician\u2019s Guide to Feeding Babies", author: "Anthony Porto", spine: "#b8863a", amazonUrl: "https://www.amazon.co.uk/Pediatricians-Guide-Feeding-Babies-Toddlers/dp/1607749017" },
     ],
   },
   {
     id: "newborn",
     name: "Newborn care",
+    hue: "sage",
     blurb: "Soothing and the early weeks.",
     ready: false,
     sources: [
-      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#9a5a3f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
-      { title: "Your Baby & Child", author: "Penelope Leach", spine: "#3f5e4a", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Child-Birth-Five/dp/0241562651" },
+      { title: "The Happiest Baby on the Block", author: "Harvey Karp", spine: "#b5603f", amazonUrl: "https://www.amazon.co.uk/Happiest-Baby-Block-Crying-Newborn/dp/0553393235" },
+      { title: "Your Baby & Child", author: "Penelope Leach", spine: "#3d5f4b", amazonUrl: "https://www.amazon.co.uk/Your-Baby-Child-Birth-Five/dp/0241562651" },
     ],
   },
   {
     id: "postpartum",
     name: "Postpartum wellbeing",
+    hue: "peach",
     blurb: "Your recovery and your own wellbeing.",
     ready: false,
     care: true,
     sources: [
-      { title: "The Fourth Trimester", author: "Kimberly Ann Johnson", spine: "#6b4a4a", amazonUrl: "https://www.amazon.co.uk/Fourth-Trimester-Postpartum-Balancing-Restoring/dp/1611804000" },
+      { title: "The Fourth Trimester", author: "Kimberly Ann Johnson", spine: "#8a5560", amazonUrl: "https://www.amazon.co.uk/Fourth-Trimester-Postpartum-Balancing-Restoring/dp/1611804000" },
     ],
     helplines: [
       { name: "PANDAS Foundation (Pre/Postnatal Depression)", tel: "0808 196 1776" },

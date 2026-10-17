@@ -78,3 +78,14 @@ describe("getTopicById", () => {
     }
   });
 });
+
+describe("topic hues", () => {
+  const HUES = ["rose", "sky", "lilac", "sun", "sage", "peach"];
+  it("every topic has a known hue", () => {
+    for (const t of TOPICS) expect(HUES).toContain(t.hue);
+  });
+  it("ready topics have distinct hues", () => {
+    const ready = TOPICS.filter((t) => t.ready && !t.hidden).map((t) => t.hue);
+    expect(new Set(ready).size).toBe(ready.length);
+  });
+});

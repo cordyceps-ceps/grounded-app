@@ -5,6 +5,7 @@ const PUBLIC_PATHS = [
   "/onboarding",
   "/auth",
   "/api",
+  "/dev",
 ];
 
 function isPublic(pathname: string) {
