@@ -295,7 +295,7 @@ export async function POST(request: Request) {
       try {
         let fullText = "";
         const response = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-5-5",
           max_tokens: 2048,
           system: buildSystemPrompt(effectiveTopicId, baby, facts, globalFacts),
           messages,
